@@ -5,20 +5,14 @@ local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
--- Executor-safe GUI parent: try gethui > CoreGui > PlayerGui
-local playerGui
-local function getGuiParent()
-	if playerGui then return playerGui end
-	local ok, result = pcall(function()
-		if typeof(gethui) == "function" then return gethui() end
-	end)
-	if ok and result then playerGui = result return playerGui end
-	ok, result = pcall(function() return game:GetService("CoreGui") end)
-	if ok and result then playerGui = result return playerGui end
-	playerGui = player:WaitForChild("PlayerGui")
-	return playerGui
-end
-getGuiParent()
+-- Executor-safe GUI parent
+local playerGui = (function()
+	local s, r = pcall(function() if gethui then return gethui() end end)
+	if s and r then return r end
+	s, r = pcall(function() return game:GetService("CoreGui") end)
+	if s and r then return r end
+	return player:WaitForChild("PlayerGui")
+end)()
 
 local Theme = {
 	Bg           = Color3.fromRGB(14, 14, 20),
@@ -46,100 +40,65 @@ local Theme = {
 }
 
 local Tw = {
-	Silk     = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-	Slow     = TweenInfo.new(0.5,  Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-	Fast     = TweenInfo.new(0.2,  Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-	Snap     = TweenInfo.new(0.06, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out),
-	Bounce   = TweenInfo.new(0.45, Enum.EasingStyle.Back,  Enum.EasingDirection.Out),
-	Spring   = TweenInfo.new(0.5,  Enum.EasingStyle.Back,  Enum.EasingDirection.Out),
-	Micro    = TweenInfo.new(0.12, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out),
-	Hover    = TweenInfo.new(0.18, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out),
+	Silk   = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+	Slow   = TweenInfo.new(0.5,  Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+	Fast   = TweenInfo.new(0.2,  Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+	Snap   = TweenInfo.new(0.06, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out),
+	Bounce = TweenInfo.new(0.45, Enum.EasingStyle.Back,  Enum.EasingDirection.Out),
+	Spring = TweenInfo.new(0.5,  Enum.EasingStyle.Back,  Enum.EasingDirection.Out),
+	Micro  = TweenInfo.new(0.12, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out),
+	Hover  = TweenInfo.new(0.18, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out),
 }
 
-local function tween(obj, info, props)
+local function tw(obj, info, props)
 	local t = TweenService:Create(obj, info, props)
 	t:Play()
 	return t
 end
 
-local function corner(parent, radius)
-	local c = Instance.new("UICorner")
-	c.CornerRadius = radius or UDim.new(0, 10)
-	c.Parent = parent
-	return c
-end
+local function corner(p, r) local c = Instance.new("UICorner"); c.CornerRadius = r or UDim.new(0, 10); c.Parent = p; return c end
+local function stroke(p, col, th, tr) local s = Instance.new("UIStroke"); s.Color = col or Theme.Border; s.Thickness = th or 1; s.Transparency = tr or 0; s.Parent = p; return s end
 
-local function stroke(parent, color, thickness, transparency)
-	local s = Instance.new("UIStroke")
-	s.Color = color or Theme.Border
-	s.Thickness = thickness or 1
-	s.Transparency = transparency or 0
-	s.Parent = parent
-	return s
-end
-
-local function accentGradient()
+local function accentGrad()
 	local g = Instance.new("UIGradient")
-	g.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Theme.AccentDark),
-		ColorSequenceKeypoint.new(0.5, Theme.AccentBright),
-		ColorSequenceKeypoint.new(1, Theme.AccentDark),
-	})
+	g.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Theme.AccentDark), ColorSequenceKeypoint.new(0.5, Theme.AccentBright), ColorSequenceKeypoint.new(1, Theme.AccentDark)})
+	return g
+end
+local function fillGrad()
+	local g = Instance.new("UIGradient")
+	g.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Theme.AccentDark), ColorSequenceKeypoint.new(1, Theme.AccentLight)})
 	return g
 end
 
-local function fillGradient()
-	local g = Instance.new("UIGradient")
-	g.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Theme.AccentDark),
-		ColorSequenceKeypoint.new(1, Theme.AccentLight),
-	})
-	return g
+local function hoverFx(frame, fs)
+	frame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement then tw(frame, Tw.Hover, {BackgroundColor3 = Theme.CardHover}); if fs then tw(fs, Tw.Hover, {Color = Theme.BorderHover}) end end end)
+	frame.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement then tw(frame, Tw.Hover, {BackgroundColor3 = Theme.Card}); if fs then tw(fs, Tw.Hover, {Color = Theme.Border}) end end end)
 end
 
-local function hoverEffect(frame, frameStroke)
-	frame.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement then
-			tween(frame, Tw.Hover, {BackgroundColor3 = Theme.CardHover})
-			if frameStroke then tween(frameStroke, Tw.Hover, {Color = Theme.BorderHover}) end
-		end
-	end)
-	frame.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement then
-			tween(frame, Tw.Hover, {BackgroundColor3 = Theme.Card})
-			if frameStroke then tween(frameStroke, Tw.Hover, {Color = Theme.Border}) end
-		end
-	end)
-end
+local renderEvent = RunService.RenderStepped or RunService.Heartbeat
 
--- Drag system — uses RenderStepped for frame-perfect movement
 local function makeDraggable(handle, target, onDrag)
 	local dragging = false
-	local dragStart = Vector3.new(0, 0, 0)
-	local startPos = UDim2.new()
+	local dragStart, startPos
 
 	handle.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-			or input.UserInputType == Enum.UserInputType.Touch then
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			dragStart = input.Position
 			startPos = target.Position
 			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then
-					dragging = false
-				end
+				if input.UserInputState == Enum.UserInputState.End then dragging = false end
 			end)
 		end
 	end)
 
-	local renderConn = (RunService.RenderStepped or RunService.Heartbeat)
-	renderConn:Connect(function()
+	renderEvent:Connect(function()
 		if not dragging then return end
-		local ok, mousePos = pcall(function() return UserInputService:GetMouseLocation() end)
+		local ok, mp = pcall(function() return UserInputService:GetMouseLocation() end)
 		if not ok then return end
-		local delta = Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(dragStart.X, dragStart.Y)
-		local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-		target.Position = newPos
+		local dx = mp.X - dragStart.X
+		local dy = mp.Y - dragStart.Y
+		target.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + dx, startPos.Y.Scale, startPos.Y.Offset + dy)
 		if onDrag then onDrag() end
 	end)
 end
@@ -155,7 +114,7 @@ function HihlLib:CreateWindow(config)
 	gui.Name = title:gsub("%s", "") .. "_UI"
 	gui.ResetOnSpawn = false
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	gui.Parent = getGuiParent()
+	gui.Parent = playerGui
 
 	local navbar = Instance.new("Frame")
 	navbar.Name = "Navbar"
@@ -169,23 +128,21 @@ function HihlLib:CreateWindow(config)
 	corner(navbar, UDim.new(0, 14))
 	stroke(navbar, Theme.BorderLight)
 
-	local navLayout = Instance.new("UIListLayout")
-	navLayout.FillDirection = Enum.FillDirection.Horizontal
-	navLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	navLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-	navLayout.Padding = UDim.new(0, 4)
-	navLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	navLayout.Parent = navbar
+	local nl = Instance.new("UIListLayout")
+	nl.FillDirection = Enum.FillDirection.Horizontal
+	nl.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	nl.VerticalAlignment = Enum.VerticalAlignment.Center
+	nl.Padding = UDim.new(0, 4)
+	nl.SortOrder = Enum.SortOrder.LayoutOrder
+	nl.Parent = navbar
 
 	local pages = Instance.new("Folder")
 	pages.Name = "Pages"
 	pages.Parent = gui
 
-	-- State
 	local Window = {}
 	Window.gui = gui
 	Window.navbar = navbar
-	Window.pages = pages
 	Window.tabs = {}
 	Window.tabOrder = {}
 	Window.currentTab = nil
@@ -205,48 +162,45 @@ function HihlLib:CreateWindow(config)
 		local nh = navbar.AbsoluteSize.Y
 		local ph = fullSize.Y.Offset
 		local below = isAbove()
-		local oy = below and (nh / 2 + gap + ph / 2) or -(nh / 2 + gap + ph / 2)
+		local oy = below and (nh/2 + gap + ph/2) or -(nh/2 + gap + ph/2)
 		return UDim2.new(p.X.Scale, p.X.Offset, p.Y.Scale, p.Y.Offset + oy)
 	end
 
 	local function getShifted(side)
 		local c = getCenter()
-		local s = 50
-		local ox = side == "left" and -s or s
+		local ox = side == "left" and -50 or 50
 		return UDim2.new(c.X.Scale, c.X.Offset + ox, c.Y.Scale, c.Y.Offset)
 	end
 
 	local function activateBtn(tab)
 		tab.active = true
-		tween(tab.icon, Tw.Fast, {ImageColor3 = Theme.Accent})
-		tween(tab.holder, Tw.Fast, {BackgroundTransparency = 0.8})
-		tween(tab.indicator, Tw.Fast, {Size = UDim2.new(0, 14, 0, 2)})
+		tw(tab.icon, Tw.Fast, {ImageColor3 = Theme.Accent})
+		tw(tab.holder, Tw.Fast, {BackgroundTransparency = 0.8})
+		tw(tab.indicator, Tw.Fast, {Size = UDim2.new(0, 14, 0, 2)})
 	end
 
 	local function deactivateBtn(tab)
 		tab.active = false
-		tween(tab.icon, Tw.Silk, {ImageColor3 = Theme.IconIdle})
-		tween(tab.holder, Tw.Silk, {BackgroundTransparency = 1})
-		tween(tab.indicator, Tw.Silk, {Size = UDim2.new(0, 0, 0, 2)})
+		tw(tab.icon, Tw.Silk, {ImageColor3 = Theme.IconIdle})
+		tw(tab.holder, Tw.Silk, {BackgroundTransparency = 1})
+		tw(tab.indicator, Tw.Silk, {Size = UDim2.new(0, 0, 0, 2)})
 	end
 
 	local function openTab(name)
 		if Window.locked then return end
 		Window.locked = true
-
 		local tab = Window.tabs[name]
 		if not tab then Window.locked = false return end
 		local page = tab.page
-		local pageStroke = tab.pageStroke
-		local accentLine = tab.accentLine
+		local ps = tab.pageStroke
+		local al = tab.accentLine
 
 		if Window.currentTab == name then
-			-- Close current
 			Window.currentTab = nil
 			deactivateBtn(tab)
-			if accentLine then tween(accentLine, Tw.Fast, {Size = UDim2.new(0, 0, 0, 2)}) end
-			if pageStroke then tween(pageStroke, Tw.Fast, {Transparency = 1}) end
-			local t = tween(page, Tw.Silk, {Size = miniSize, GroupTransparency = 1})
+			if al then tw(al, Tw.Fast, {Size = UDim2.new(0, 0, 0, 2)}) end
+			if ps then tw(ps, Tw.Fast, {Transparency = 1}) end
+			local t = tw(page, Tw.Silk, {Size = miniSize, GroupTransparency = 1})
 			t.Completed:Connect(function()
 				if Window.currentTab ~= name then page.Visible = false end
 				Window.locked = false
@@ -255,67 +209,56 @@ function HihlLib:CreateWindow(config)
 		end
 
 		if Window.currentTab then
-			local oldTab = Window.tabs[Window.currentTab]
-			if oldTab then
-				local oldPage = oldTab.page
-				deactivateBtn(oldTab)
-				if oldTab.accentLine then tween(oldTab.accentLine, Tw.Fast, {Size = UDim2.new(0, 0, 0, 2)}) end
-				if oldTab.pageStroke then tween(oldTab.pageStroke, Tw.Fast, {Transparency = 1}) end
-
-				local exitSide = tab.order > oldTab.order and "left" or "right"
-				local enterSide = tab.order > oldTab.order and "right" or "left"
-
-				local exitT = tween(oldPage, Tw.Silk, {Position = getShifted(exitSide), Size = miniSize, GroupTransparency = 1})
-				exitT.Completed:Connect(function() oldPage.Visible = false end)
-
+			local old = Window.tabs[Window.currentTab]
+			if old then
+				deactivateBtn(old)
+				if old.accentLine then tw(old.accentLine, Tw.Fast, {Size = UDim2.new(0, 0, 0, 2)}) end
+				if old.pageStroke then tw(old.pageStroke, Tw.Fast, {Transparency = 1}) end
+				local exitSide = tab.order > old.order and "left" or "right"
+				local enterSide = tab.order > old.order and "right" or "left"
+				local et = tw(old.page, Tw.Silk, {Position = getShifted(exitSide), Size = miniSize, GroupTransparency = 1})
+				et.Completed:Connect(function() old.page.Visible = false end)
 
 				page.Position = getShifted(enterSide)
 				page.Size = miniSize
 				page.GroupTransparency = 1
 				page.Visible = true
-				if pageStroke then pageStroke.Transparency = 1 end
-				if accentLine then accentLine.Size = UDim2.new(0, 0, 0, 2) end
-
+				if ps then ps.Transparency = 1 end
+				if al then al.Size = UDim2.new(0, 0, 0, 2) end
 				Window.currentTab = name
 				activateBtn(tab)
 
-				task.defer(function()
-					tween(page, Tw.Slow, {Position = getCenter(), Size = fullSize, GroupTransparency = 0})
-					if pageStroke then tween(pageStroke, Tw.Slow, {Transparency = 0}) end
+				task.spawn(function()
+					task.wait(0.02)
+					tw(page, Tw.Slow, {Position = getCenter(), Size = fullSize, GroupTransparency = 0})
+					if ps then tw(ps, Tw.Slow, {Transparency = 0}) end
 					task.wait(0.18)
-					if accentLine and Window.currentTab == name then
-						tween(accentLine, Tw.Silk, {Size = UDim2.new(0.25, 0, 0, 2)})
-					end
+					if al and Window.currentTab == name then tw(al, Tw.Silk, {Size = UDim2.new(0.25, 0, 0, 2)}) end
 					task.wait(0.25)
 					Window.locked = false
 				end)
 			end
 		else
-			-- First open
 			page.Position = getCenter()
 			page.Size = miniSize
 			page.GroupTransparency = 1
 			page.Visible = true
-			if pageStroke then pageStroke.Transparency = 1 end
-			if accentLine then accentLine.Size = UDim2.new(0, 0, 0, 2) end
-
+			if ps then ps.Transparency = 1 end
+			if al then al.Size = UDim2.new(0, 0, 0, 2) end
 			Window.currentTab = name
 			activateBtn(tab)
 
-			task.defer(function()
-				tween(page, Tw.Slow, {Size = fullSize, GroupTransparency = 0})
-				if pageStroke then tween(pageStroke, Tw.Slow, {Transparency = 0}) end
+			task.spawn(function()
+				tw(page, Tw.Slow, {Size = fullSize, GroupTransparency = 0})
+				if ps then tw(ps, Tw.Slow, {Transparency = 0}) end
 				task.wait(0.18)
-				if accentLine and Window.currentTab == name then
-					tween(accentLine, Tw.Silk, {Size = UDim2.new(0.25, 0, 0, 2)})
-				end
+				if al and Window.currentTab == name then tw(al, Tw.Silk, {Size = UDim2.new(0.25, 0, 0, 2)}) end
 				task.wait(0.3)
 				Window.locked = false
 			end)
 		end
 	end
 
-	-- Drag follow — page follows navbar in real time
 	makeDraggable(navbar, navbar, function()
 		if Window.currentTab then
 			local tab = Window.tabs[Window.currentTab]
@@ -325,7 +268,6 @@ function HihlLib:CreateWindow(config)
 		end
 	end)
 
-	-- Toggle visibility with key
 	UserInputService.InputBegan:Connect(function(input, gpe)
 		if gpe then return end
 		if input.KeyCode == toggleKey then
@@ -334,14 +276,10 @@ function HihlLib:CreateWindow(config)
 		end
 	end)
 
-	-- ═══════════════════════════════════════
-	-- CREATE TAB
-	-- ═══════════════════════════════════════
-
-	function Window:CreateTab(tabConfig)
-		tabConfig = tabConfig or {}
-		local tabName = tabConfig.Name or "Tab"
-		local tabIcon = tabConfig.Icon or "rbxassetid://10723407389"
+	function Window:CreateTab(tc)
+		tc = tc or {}
+		local tabName = tc.Name or "Tab"
+		local tabIcon = tc.Icon or "rbxassetid://10723407389"
 		local tabOrder = #self.tabOrder + 1
 
 		local holder = Instance.new("Frame")
@@ -385,7 +323,7 @@ function HihlLib:CreateWindow(config)
 		page.Visible = false
 		page.ZIndex = 10
 		page.GroupTransparency = 1
-		page.Parent = self.pages
+		page.Parent = pages
 		corner(page, UDim.new(0, 14))
 
 		local pStroke = stroke(page, Theme.BorderLight, 1, 1)
@@ -401,7 +339,7 @@ function HihlLib:CreateWindow(config)
 		aLine.ZIndex = 12
 		aLine.Parent = page
 		corner(aLine, UDim.new(1, 0))
-		accentGradient().Parent = aLine
+		accentGrad().Parent = aLine
 
 		local header = Instance.new("Frame")
 		header.Name = "Header"
@@ -410,25 +348,25 @@ function HihlLib:CreateWindow(config)
 		header.ZIndex = 11
 		header.Parent = page
 
-		local headerText = Instance.new("TextLabel")
-		headerText.BackgroundTransparency = 1
-		headerText.Position = UDim2.new(0, 14, 0, 0)
-		headerText.Size = UDim2.new(1, -20, 1, 0)
-		headerText.ZIndex = 11
-		headerText.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
-		headerText.Text = tabName
-		headerText.TextColor3 = Theme.Text1
-		headerText.TextSize = 14
-		headerText.TextXAlignment = Enum.TextXAlignment.Left
-		headerText.Parent = header
+		local ht = Instance.new("TextLabel")
+		ht.BackgroundTransparency = 1
+		ht.Position = UDim2.new(0, 14, 0, 0)
+		ht.Size = UDim2.new(1, -20, 1, 0)
+		ht.ZIndex = 11
+		ht.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
+		ht.Text = tabName
+		ht.TextColor3 = Theme.Text1
+		ht.TextSize = 14
+		ht.TextXAlignment = Enum.TextXAlignment.Left
+		ht.Parent = header
 
-		local headerLine = Instance.new("Frame")
-		headerLine.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
-		headerLine.BorderSizePixel = 0
-		headerLine.Position = UDim2.new(0, 14, 1, -1)
-		headerLine.Size = UDim2.new(1, -28, 0, 1)
-		headerLine.ZIndex = 11
-		headerLine.Parent = header
+		local hl = Instance.new("Frame")
+		hl.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
+		hl.BorderSizePixel = 0
+		hl.Position = UDim2.new(0, 14, 1, -1)
+		hl.Size = UDim2.new(1, -28, 0, 1)
+		hl.ZIndex = 11
+		hl.Parent = header
 
 		local container = Instance.new("ScrollingFrame")
 		container.Name = "Container"
@@ -443,703 +381,219 @@ function HihlLib:CreateWindow(config)
 		container.ScrollBarThickness = 2
 		container.Parent = page
 
-		local cLayout = Instance.new("UIListLayout")
-		cLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-		cLayout.Padding = UDim.new(0, 3)
-		cLayout.SortOrder = Enum.SortOrder.LayoutOrder
-		cLayout.Parent = container
+		local cl = Instance.new("UIListLayout")
+		cl.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		cl.Padding = UDim.new(0, 3)
+		cl.SortOrder = Enum.SortOrder.LayoutOrder
+		cl.Parent = container
 
-		local cPadding = Instance.new("UIPadding")
-		cPadding.PaddingBottom = UDim.new(0, 6)
-		cPadding.PaddingLeft = UDim.new(0, 7)
-		cPadding.PaddingRight = UDim.new(0, 7)
-		cPadding.PaddingTop = UDim.new(0, 4)
-		cPadding.Parent = container
+		local cp = Instance.new("UIPadding")
+		cp.PaddingBottom = UDim.new(0, 6)
+		cp.PaddingLeft = UDim.new(0, 7)
+		cp.PaddingRight = UDim.new(0, 7)
+		cp.PaddingTop = UDim.new(0, 4)
+		cp.Parent = container
 
-		local tabData = {
-			name = tabName,
-			order = tabOrder,
-			holder = holder,
-			icon = icon,
-			indicator = ind,
-			page = page,
-			pageStroke = pStroke,
-			accentLine = aLine,
-			container = container,
-			active = false,
-			itemCount = 0,
-		}
+		local tabData = { name = tabName, order = tabOrder, holder = holder, icon = icon, indicator = ind, page = page, pageStroke = pStroke, accentLine = aLine, container = container, active = false, itemCount = 0 }
 		self.tabs[tabName] = tabData
 		table.insert(self.tabOrder, tabName)
 
-		-- Resize navbar smoothly
 		local btnCount = #self.tabOrder
-		tween(self.navbar, Tw.Spring, {Size = UDim2.new(0, btnCount * 46 + (btnCount - 1) * 4 + 16, 0, 46)})
+		tw(self.navbar, Tw.Spring, {Size = UDim2.new(0, btnCount * 46 + (btnCount - 1) * 4 + 16, 0, 46)})
 
-		-- Tab button interactions
-		icon.MouseButton1Click:Connect(function()
-			openTab(tabName)
-		end)
+		icon.MouseButton1Click:Connect(function() openTab(tabName) end)
+		holder.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement and not tabData.active then tw(icon, Tw.Hover, {ImageColor3 = Theme.IconHover}); tw(holder, Tw.Hover, {BackgroundTransparency = 0.88}) end end)
+		holder.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement and not tabData.active then tw(icon, Tw.Hover, {ImageColor3 = Theme.IconIdle}); tw(holder, Tw.Hover, {BackgroundTransparency = 1}) end end)
+		icon.MouseButton1Down:Connect(function() tw(icon, Tw.Micro, {Size = UDim2.new(0, 15, 0, 15)}) end)
+		icon.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then tw(icon, Tw.Spring, {Size = UDim2.new(0, 18, 0, 18)}) end end)
 
-		holder.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseMovement and not tabData.active then
-				tween(icon, Tw.Hover, {ImageColor3 = Theme.IconHover})
-				tween(holder, Tw.Hover, {BackgroundTransparency = 0.88})
-			end
-		end)
-
-		holder.InputEnded:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseMovement and not tabData.active then
-				tween(icon, Tw.Hover, {ImageColor3 = Theme.IconIdle})
-				tween(holder, Tw.Hover, {BackgroundTransparency = 1})
-			end
-		end)
-
-		icon.MouseButton1Down:Connect(function()
-			tween(icon, Tw.Micro, {Size = UDim2.new(0, 15, 0, 15)})
-		end)
-
-		icon.InputEnded:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1 then
-				tween(icon, Tw.Spring, {Size = UDim2.new(0, 18, 0, 18)})
-			end
-		end)
-
-		-- ═══════════════════════════════════
-		-- TAB API
-		-- ═══════════════════════════════════
 		local Tab = {}
 
 		function Tab:CreateToggle(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
 			local on = cfg.Default or false
-			local callback = cfg.Callback or function() end
+			local cb = cfg.Callback or function() end
 
-			local frame = Instance.new("Frame")
-			frame.Name = "Toggle_" .. (cfg.Name or "Toggle")
-			frame.BackgroundColor3 = Theme.Card
-			frame.LayoutOrder = tabData.itemCount
-			frame.Size = UDim2.new(1, 0, 0, 38)
-			frame.ZIndex = 11
-			frame.Parent = container
-			corner(frame, UDim.new(0, 10))
-			local fStroke = stroke(frame, Theme.Border, 1, 0.3)
-			fStroke.Name = "FrameStroke"
+			local f = Instance.new("Frame"); f.Name = "Toggle_"..(cfg.Name or "Toggle"); f.BackgroundColor3 = Theme.Card; f.LayoutOrder = tabData.itemCount; f.Size = UDim2.new(1,0,0,38); f.ZIndex = 11; f.Parent = container; corner(f, UDim.new(0,10))
+			local fs = stroke(f, Theme.Border, 1, 0.3); fs.Name = "FrameStroke"
+			local lbl = Instance.new("TextLabel"); lbl.BackgroundTransparency = 1; lbl.Position = UDim2.new(0,12,0,0); lbl.Size = UDim2.new(1,-56,1,0); lbl.ZIndex = 12; lbl.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium); lbl.Text = cfg.Name or "Toggle"; lbl.TextColor3 = on and Theme.TextActive or Theme.Text2; lbl.TextSize = 12; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = f
+			local trk = Instance.new("TextButton"); trk.Name = "Track"; trk.AnchorPoint = Vector2.new(1,0.5); trk.BackgroundColor3 = on and Theme.Accent or Theme.ToggleTrack; trk.Position = UDim2.new(1,-8,0.5,0); trk.Size = UDim2.new(0,38,0,22); trk.ZIndex = 12; trk.AutoButtonColor = false; trk.Text = ""; trk.Parent = f; corner(trk, UDim.new(1,0))
+			local ts = stroke(trk, on and Color3.fromRGB(100,130,255) or Color3.fromRGB(40,40,52)); ts.Name = "TrackStroke"
+			local cir = Instance.new("Frame"); cir.Name = "Circle"; cir.AnchorPoint = on and Vector2.new(1,0.5) or Vector2.new(0,0.5); cir.BackgroundColor3 = on and Color3.fromRGB(255,255,255) or Theme.ToggleOff; cir.Position = on and UDim2.new(1,-3,0.5,0) or UDim2.new(0,4,0.5,0); cir.Size = on and UDim2.new(0,16,0,16) or UDim2.new(0,14,0,14); cir.ZIndex = 13; cir.Parent = trk; corner(cir, UDim.new(1,0))
+			hoverFx(f, fs)
 
-			local label = Instance.new("TextLabel")
-			label.BackgroundTransparency = 1
-			label.Position = UDim2.new(0, 12, 0, 0)
-			label.Size = UDim2.new(1, -56, 1, 0)
-			label.ZIndex = 12
-			label.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium)
-			label.Text = cfg.Name or "Toggle"
-			label.TextColor3 = on and Theme.TextActive or Theme.Text2
-			label.TextSize = 12
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			label.Parent = frame
-
-			local track = Instance.new("TextButton")
-			track.Name = "Track"
-			track.AnchorPoint = Vector2.new(1, 0.5)
-			track.BackgroundColor3 = on and Theme.Accent or Theme.ToggleTrack
-			track.Position = UDim2.new(1, -8, 0.5, 0)
-			track.Size = UDim2.new(0, 38, 0, 22)
-			track.ZIndex = 12
-			track.AutoButtonColor = false
-			track.Text = ""
-			track.Parent = frame
-			corner(track, UDim.new(1, 0))
-			local tStroke = stroke(track, on and Color3.fromRGB(100, 130, 255) or Color3.fromRGB(40, 40, 52))
-			tStroke.Name = "TrackStroke"
-
-			local circle = Instance.new("Frame")
-			circle.Name = "Circle"
-			circle.AnchorPoint = on and Vector2.new(1, 0.5) or Vector2.new(0, 0.5)
-			circle.BackgroundColor3 = on and Color3.fromRGB(255, 255, 255) or Theme.ToggleOff
-			circle.Position = on and UDim2.new(1, -3, 0.5, 0) or UDim2.new(0, 4, 0.5, 0)
-			circle.Size = on and UDim2.new(0, 16, 0, 16) or UDim2.new(0, 14, 0, 14)
-			circle.ZIndex = 13
-			circle.Parent = track
-			corner(circle, UDim.new(1, 0))
-
-			hoverEffect(frame, fStroke)
-
-			local function setToggle(state)
+			local function set(state)
 				on = state
 				if on then
-					tween(track, Tw.Silk, {BackgroundColor3 = Theme.Accent})
-					tween(circle, Tw.Spring, {
-						Position = UDim2.new(1, -3, 0.5, 0),
-						Size = UDim2.new(0, 16, 0, 16),
-						AnchorPoint = Vector2.new(1, 0.5),
-						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-					})
-					tween(tStroke, Tw.Silk, {Color = Color3.fromRGB(100, 130, 255)})
-					tween(label, Tw.Silk, {TextColor3 = Theme.TextActive})
+					tw(trk, Tw.Silk, {BackgroundColor3 = Theme.Accent}); tw(cir, Tw.Spring, {Position = UDim2.new(1,-3,0.5,0), Size = UDim2.new(0,16,0,16), AnchorPoint = Vector2.new(1,0.5), BackgroundColor3 = Color3.fromRGB(255,255,255)}); tw(ts, Tw.Silk, {Color = Color3.fromRGB(100,130,255)}); tw(lbl, Tw.Silk, {TextColor3 = Theme.TextActive})
 				else
-					tween(track, Tw.Silk, {BackgroundColor3 = Theme.ToggleTrack})
-					tween(circle, Tw.Spring, {
-						Position = UDim2.new(0, 4, 0.5, 0),
-						Size = UDim2.new(0, 14, 0, 14),
-						AnchorPoint = Vector2.new(0, 0.5),
-						BackgroundColor3 = Theme.ToggleOff,
-					})
-					tween(tStroke, Tw.Silk, {Color = Color3.fromRGB(40, 40, 52)})
-					tween(label, Tw.Silk, {TextColor3 = Theme.Text2})
+					tw(trk, Tw.Silk, {BackgroundColor3 = Theme.ToggleTrack}); tw(cir, Tw.Spring, {Position = UDim2.new(0,4,0.5,0), Size = UDim2.new(0,14,0,14), AnchorPoint = Vector2.new(0,0.5), BackgroundColor3 = Theme.ToggleOff}); tw(ts, Tw.Silk, {Color = Color3.fromRGB(40,40,52)}); tw(lbl, Tw.Silk, {TextColor3 = Theme.Text2})
 				end
-				task.spawn(callback, on)
+				task.spawn(cb, on)
 			end
+			trk.MouseButton1Click:Connect(function() set(not on) end)
 
-			track.MouseButton1Click:Connect(function()
-				setToggle(not on)
-			end)
-
-			local toggleAPI = {}
-			function toggleAPI:Set(val) if val ~= on then setToggle(val) end end
-			function toggleAPI:Get() return on end
-			return toggleAPI
+			local api = {}
+			function api:Set(v) if v ~= on then set(v) end end
+			function api:Get() return on end
+			return api
 		end
 
 		function Tab:CreateSlider(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
-			local min = cfg.Min or 0
-			local max = cfg.Max or 100
+			local min, max = cfg.Min or 0, cfg.Max or 100
 			local default = math.clamp(cfg.Default or min, min, max)
-			local increment = cfg.Increment or 1
-			local callback = cfg.Callback or function() end
-			local currentValue = default
+			local inc = cfg.Increment or 1
+			local cb = cfg.Callback or function() end
+			local cur = default
 
-			local frame = Instance.new("Frame")
-			frame.Name = "Slider_" .. (cfg.Name or "Slider")
-			frame.BackgroundColor3 = Theme.Card
-			frame.LayoutOrder = tabData.itemCount
-			frame.Size = UDim2.new(1, 0, 0, 50)
-			frame.ZIndex = 11
-			frame.Parent = container
-			corner(frame, UDim.new(0, 10))
-			local fStroke = stroke(frame, Theme.Border, 1, 0.3)
-			fStroke.Name = "FrameStroke"
+			local f = Instance.new("Frame"); f.Name = "Slider_"..(cfg.Name or "Slider"); f.BackgroundColor3 = Theme.Card; f.LayoutOrder = tabData.itemCount; f.Size = UDim2.new(1,0,0,50); f.ZIndex = 11; f.Parent = container; corner(f, UDim.new(0,10))
+			local fs = stroke(f, Theme.Border, 1, 0.3); fs.Name = "FrameStroke"
+			local lbl = Instance.new("TextLabel"); lbl.Name = "Label"; lbl.BackgroundTransparency = 1; lbl.Position = UDim2.new(0,12,0,6); lbl.Size = UDim2.new(1,-55,0,18); lbl.ZIndex = 12; lbl.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium); lbl.Text = cfg.Name or "Slider"; lbl.TextColor3 = Theme.Text2; lbl.TextSize = 12; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = f
+			local vbg = Instance.new("Frame"); vbg.Name = "ValueBg"; vbg.AnchorPoint = Vector2.new(1,0); vbg.BackgroundColor3 = Theme.ValueBg; vbg.Position = UDim2.new(1,-8,0,6); vbg.Size = UDim2.new(0,40,0,18); vbg.ZIndex = 12; vbg.Parent = f; corner(vbg, UDim.new(0,6))
+			local vl = Instance.new("TextLabel"); vl.Name = "Value"; vl.BackgroundTransparency = 1; vl.Size = UDim2.new(1,0,1,0); vl.ZIndex = 13; vl.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold); vl.Text = tostring(default); vl.TextColor3 = Theme.Accent; vl.TextSize = 10; vl.Parent = vbg
+			local bar = Instance.new("Frame"); bar.Name = "Bar"; bar.BackgroundColor3 = Theme.SliderBar; bar.BorderSizePixel = 0; bar.Position = UDim2.new(0,12,0,34); bar.Size = UDim2.new(1,-24,0,4); bar.ZIndex = 12; bar.Parent = f; corner(bar, UDim.new(1,0))
+			local ip = (default - min) / math.max(max - min, 1)
+			local fill = Instance.new("Frame"); fill.Name = "Fill"; fill.BackgroundColor3 = Theme.Accent; fill.BorderSizePixel = 0; fill.Size = UDim2.new(ip,0,1,0); fill.ZIndex = 13; fill.Parent = bar; corner(fill, UDim.new(1,0)); fillGrad().Parent = fill
+			local knob = Instance.new("Frame"); knob.Name = "Knob"; knob.AnchorPoint = Vector2.new(0.5,0.5); knob.BackgroundColor3 = Theme.Knob; knob.Position = UDim2.new(ip,0,0.5,0); knob.Size = UDim2.new(0,12,0,12); knob.ZIndex = 15; knob.Parent = bar; corner(knob, UDim.new(1,0)); stroke(knob, Theme.Accent, 1.5)
+			local trigger = Instance.new("TextButton"); trigger.Name = "Trigger"; trigger.AnchorPoint = Vector2.new(0,0.5); trigger.BackgroundTransparency = 1; trigger.Position = UDim2.new(0,-7,0.5,0); trigger.Size = UDim2.new(1,14,5,0); trigger.ZIndex = 16; trigger.Text = ""; trigger.Parent = bar
+			hoverFx(f, fs)
 
-			local label = Instance.new("TextLabel")
-			label.Name = "Label"
-			label.BackgroundTransparency = 1
-			label.Position = UDim2.new(0, 12, 0, 6)
-			label.Size = UDim2.new(1, -55, 0, 18)
-			label.ZIndex = 12
-			label.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium)
-			label.Text = cfg.Name or "Slider"
-			label.TextColor3 = Theme.Text2
-			label.TextSize = 12
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			label.Parent = frame
-
-			local valueBg = Instance.new("Frame")
-			valueBg.Name = "ValueBg"
-			valueBg.AnchorPoint = Vector2.new(1, 0)
-			valueBg.BackgroundColor3 = Theme.ValueBg
-			valueBg.Position = UDim2.new(1, -8, 0, 6)
-			valueBg.Size = UDim2.new(0, 40, 0, 18)
-			valueBg.ZIndex = 12
-			valueBg.Parent = frame
-			corner(valueBg, UDim.new(0, 6))
-
-			local valueLabel = Instance.new("TextLabel")
-			valueLabel.Name = "Value"
-			valueLabel.BackgroundTransparency = 1
-			valueLabel.Size = UDim2.new(1, 0, 1, 0)
-			valueLabel.ZIndex = 13
-			valueLabel.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
-			valueLabel.Text = tostring(default)
-			valueLabel.TextColor3 = Theme.Accent
-			valueLabel.TextSize = 10
-			valueLabel.Parent = valueBg
-
-			local bar = Instance.new("Frame")
-			bar.Name = "Bar"
-			bar.BackgroundColor3 = Theme.SliderBar
-			bar.BorderSizePixel = 0
-			bar.Position = UDim2.new(0, 12, 0, 34)
-			bar.Size = UDim2.new(1, -24, 0, 4)
-			bar.ZIndex = 12
-			bar.Parent = frame
-			corner(bar, UDim.new(1, 0))
-
-			local initPercent = (default - min) / math.max(max - min, 1)
-
-			local fill = Instance.new("Frame")
-			fill.Name = "Fill"
-			fill.BackgroundColor3 = Theme.Accent
-			fill.BorderSizePixel = 0
-			fill.Size = UDim2.new(initPercent, 0, 1, 0)
-			fill.ZIndex = 13
-			fill.Parent = bar
-			corner(fill, UDim.new(1, 0))
-			fillGradient().Parent = fill
-
-			local knob = Instance.new("Frame")
-			knob.Name = "Knob"
-			knob.AnchorPoint = Vector2.new(0.5, 0.5)
-			knob.BackgroundColor3 = Theme.Knob
-			knob.Position = UDim2.new(initPercent, 0, 0.5, 0)
-			knob.Size = UDim2.new(0, 12, 0, 12)
-			knob.ZIndex = 15
-			knob.Parent = bar
-			corner(knob, UDim.new(1, 0))
-			stroke(knob, Theme.Accent, 1.5)
-
-			local trigger = Instance.new("TextButton")
-			trigger.Name = "Trigger"
-			trigger.AnchorPoint = Vector2.new(0, 0.5)
-			trigger.BackgroundTransparency = 1
-			trigger.Position = UDim2.new(0, -7, 0.5, 0)
-			trigger.Size = UDim2.new(1, 14, 5, 0)
-			trigger.ZIndex = 16
-			trigger.Text = ""
-			trigger.Parent = bar
-
-			hoverEffect(frame, fStroke)
-
-			-- Use RenderStepped for frame-perfect slider tracking
 			local sliding = false
-
 			local function updateSlider(inputX)
 				if not bar or not bar.Parent then return end
-				local barPos = bar.AbsolutePosition.X
-				local barSize = bar.AbsoluteSize.X
-				if barSize <= 0 then return end
-				local p = math.clamp((inputX - barPos) / barSize, 0, 1)
-				local rawVal = min + (max - min) * p
-				local snapped = math.floor(rawVal / increment + 0.5) * increment
-				snapped = math.clamp(snapped, min, max)
-				local snapP = (snapped - min) / math.max(max - min, 1)
-
-				fill.Size = UDim2.new(snapP, 0, 1, 0)
-				knob.Position = UDim2.new(snapP, 0, 0.5, 0)
-				valueLabel.Text = tostring(snapped)
-				if snapped ~= currentValue then
-					currentValue = snapped
-					task.spawn(callback, snapped)
-				end
+				local bx, bw = bar.AbsolutePosition.X, bar.AbsoluteSize.X
+				if bw <= 0 then return end
+				local p = math.clamp((inputX - bx) / bw, 0, 1)
+				local raw = min + (max - min) * p
+				local snapped = math.clamp(math.floor(raw / inc + 0.5) * inc, min, max)
+				local sp = (snapped - min) / math.max(max - min, 1)
+				fill.Size = UDim2.new(sp, 0, 1, 0)
+				knob.Position = UDim2.new(sp, 0, 0.5, 0)
+				vl.Text = tostring(snapped)
+				if snapped ~= cur then cur = snapped; task.spawn(cb, snapped) end
 			end
 
-			trigger.MouseButton1Down:Connect(function()
-				sliding = true
-				tween(knob, Tw.Spring, {Size = UDim2.new(0, 16, 0, 16)})
-			end)
+			trigger.MouseButton1Down:Connect(function() sliding = true; tw(knob, Tw.Spring, {Size = UDim2.new(0,16,0,16)}) end)
+			UserInputService.InputEnded:Connect(function(i) if (i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch) and sliding then sliding = false; tw(knob, Tw.Spring, {Size = UDim2.new(0,12,0,12)}) end end)
+			renderEvent:Connect(function() if not sliding then return end; local ok, mp = pcall(function() return UserInputService:GetMouseLocation() end); if ok then updateSlider(mp.X) end end)
 
-			UserInputService.InputEnded:Connect(function(input)
-				if (input.UserInputType == Enum.UserInputType.MouseButton1
-					or input.UserInputType == Enum.UserInputType.Touch) and sliding then
-					sliding = false
-					tween(knob, Tw.Spring, {Size = UDim2.new(0, 12, 0, 12)})
-				end
-			end)
-
-			-- Frame-perfect tracking
-			(RunService.RenderStepped or RunService.Heartbeat):Connect(function()
-				if not sliding then return end
-				local mousePos = UserInputService:GetMouseLocation()
-				updateSlider(mousePos.X)
-			end)
-
-			local sliderAPI = {}
-			function sliderAPI:Set(val)
-				val = math.clamp(val, min, max)
-				local snapped = math.floor(val / increment + 0.5) * increment
-				snapped = math.clamp(snapped, min, max)
-				currentValue = snapped
-				local p = (snapped - min) / math.max(max - min, 1)
-				tween(fill, Tw.Silk, {Size = UDim2.new(p, 0, 1, 0)})
-				tween(knob, Tw.Silk, {Position = UDim2.new(p, 0, 0.5, 0)})
-				valueLabel.Text = tostring(snapped)
-				task.spawn(callback, snapped)
-			end
-			function sliderAPI:Get() return currentValue end
-			return sliderAPI
+			local api = {}
+			function api:Set(v) v = math.clamp(v, min, max); local sn = math.clamp(math.floor(v/inc+0.5)*inc, min, max); cur = sn; local p = (sn-min)/math.max(max-min,1); tw(fill, Tw.Silk, {Size = UDim2.new(p,0,1,0)}); tw(knob, Tw.Silk, {Position = UDim2.new(p,0,0.5,0)}); vl.Text = tostring(sn); task.spawn(cb, sn) end
+			function api:Get() return cur end
+			return api
 		end
 
 		function Tab:CreateButton(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
-			local callback = cfg.Callback or function() end
+			local cb = cfg.Callback or function() end
 
-			local frame = Instance.new("TextButton")
-			frame.Name = "Button_" .. (cfg.Name or "Button")
-			frame.BackgroundColor3 = Theme.Card
-			frame.LayoutOrder = tabData.itemCount
-			frame.Size = UDim2.new(1, 0, 0, 38)
-			frame.ZIndex = 11
-			frame.AutoButtonColor = false
-			frame.Text = ""
-			frame.Parent = container
-			corner(frame, UDim.new(0, 10))
-			local fStroke = stroke(frame, Theme.Border, 1, 0.3)
+			local f = Instance.new("TextButton"); f.Name = "Button_"..(cfg.Name or "Button"); f.BackgroundColor3 = Theme.Card; f.LayoutOrder = tabData.itemCount; f.Size = UDim2.new(1,0,0,38); f.ZIndex = 11; f.AutoButtonColor = false; f.Text = ""; f.Parent = container; corner(f, UDim.new(0,10))
+			local fs = stroke(f, Theme.Border, 1, 0.3)
+			local lbl = Instance.new("TextLabel"); lbl.BackgroundTransparency = 1; lbl.Position = UDim2.new(0,12,0,0); lbl.Size = UDim2.new(1,-24,1,0); lbl.ZIndex = 12; lbl.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium); lbl.Text = cfg.Name or "Button"; lbl.TextColor3 = Theme.Text2; lbl.TextSize = 12; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = f
+			local arr = Instance.new("TextLabel"); arr.BackgroundTransparency = 1; arr.AnchorPoint = Vector2.new(1,0.5); arr.Position = UDim2.new(1,-12,0.5,0); arr.Size = UDim2.new(0,16,0,16); arr.ZIndex = 12; arr.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold); arr.Text = ">"; arr.TextColor3 = Theme.IconIdle; arr.TextSize = 16; arr.Parent = f
 
-			local label = Instance.new("TextLabel")
-			label.BackgroundTransparency = 1
-			label.Position = UDim2.new(0, 12, 0, 0)
-			label.Size = UDim2.new(1, -24, 1, 0)
-			label.ZIndex = 12
-			label.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium)
-			label.Text = cfg.Name or "Button"
-			label.TextColor3 = Theme.Text2
-			label.TextSize = 12
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			label.Parent = frame
-
-			local arrow = Instance.new("TextLabel")
-			arrow.BackgroundTransparency = 1
-			arrow.AnchorPoint = Vector2.new(1, 0.5)
-			arrow.Position = UDim2.new(1, -12, 0.5, 0)
-			arrow.Size = UDim2.new(0, 16, 0, 16)
-			arrow.ZIndex = 12
-			arrow.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
-			arrow.Text = "›"
-			arrow.TextColor3 = Theme.IconIdle
-			arrow.TextSize = 18
-			arrow.Parent = frame
-
-			-- Button hover — direct on TextButton
-			frame.InputBegan:Connect(function(input)
-				if input.UserInputType == Enum.UserInputType.MouseMovement then
-					tween(frame, Tw.Hover, {BackgroundColor3 = Theme.CardHover})
-					if fStroke then tween(fStroke, Tw.Hover, {Color = Theme.BorderHover}) end
-				end
-			end)
-			frame.InputEnded:Connect(function(input)
-				if input.UserInputType == Enum.UserInputType.MouseMovement then
-					tween(frame, Tw.Hover, {BackgroundColor3 = Theme.Card})
-					if fStroke then tween(fStroke, Tw.Hover, {Color = Theme.Border}) end
-				end
-			end)
-
-			frame.MouseButton1Down:Connect(function()
-				tween(frame, Tw.Micro, {BackgroundColor3 = Theme.Border})
-			end)
-
-			frame.MouseButton1Click:Connect(function()
-				tween(frame, Tw.Silk, {BackgroundColor3 = Theme.Card})
-				tween(label, Tw.Fast, {TextColor3 = Theme.Accent})
-				task.spawn(function()
-					task.wait(0.12)
-					tween(label, Tw.Silk, {TextColor3 = Theme.Text2})
-				end)
-				task.spawn(callback)
-			end)
+			f.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement then tw(f, Tw.Hover, {BackgroundColor3 = Theme.CardHover}); tw(fs, Tw.Hover, {Color = Theme.BorderHover}) end end)
+			f.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement then tw(f, Tw.Hover, {BackgroundColor3 = Theme.Card}); tw(fs, Tw.Hover, {Color = Theme.Border}) end end)
+			f.MouseButton1Down:Connect(function() tw(f, Tw.Micro, {BackgroundColor3 = Theme.Border}) end)
+			f.MouseButton1Click:Connect(function() tw(f, Tw.Silk, {BackgroundColor3 = Theme.Card}); tw(lbl, Tw.Fast, {TextColor3 = Theme.Accent}); task.spawn(function() task.wait(0.12); tw(lbl, Tw.Silk, {TextColor3 = Theme.Text2}) end); task.spawn(cb) end)
 		end
 
 		function Tab:CreateDropdown(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
-			local options = cfg.Options or {}
-			local current = cfg.Default or (options[1] or "")
-			local callback = cfg.Callback or function() end
+			local opts = cfg.Options or {}
+			local cur = cfg.Default or (opts[1] or "")
+			local cb = cfg.Callback or function() end
 			local isOpen = false
 
-			local frame = Instance.new("Frame")
-			frame.Name = "Dropdown_" .. (cfg.Name or "Dropdown")
-			frame.BackgroundColor3 = Theme.Card
-			frame.LayoutOrder = tabData.itemCount
-			frame.Size = UDim2.new(1, 0, 0, 38)
-			frame.ZIndex = 11
-			frame.ClipsDescendants = true
-			frame.Parent = container
-			corner(frame, UDim.new(0, 10))
-			local fStroke = stroke(frame, Theme.Border, 1, 0.3)
+			local f = Instance.new("Frame"); f.Name = "DD_"..(cfg.Name or "DD"); f.BackgroundColor3 = Theme.Card; f.LayoutOrder = tabData.itemCount; f.Size = UDim2.new(1,0,0,38); f.ZIndex = 11; f.ClipsDescendants = true; f.Parent = container; corner(f, UDim.new(0,10))
+			local fs = stroke(f, Theme.Border, 1, 0.3)
+			local lbl = Instance.new("TextLabel"); lbl.BackgroundTransparency = 1; lbl.Position = UDim2.new(0,12,0,0); lbl.Size = UDim2.new(1,-56,0,38); lbl.ZIndex = 12; lbl.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium); lbl.Text = cfg.Name or "Dropdown"; lbl.TextColor3 = Theme.Text2; lbl.TextSize = 12; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = f
+			local sel = Instance.new("TextButton"); sel.AnchorPoint = Vector2.new(1,0); sel.BackgroundColor3 = Theme.ValueBg; sel.Position = UDim2.new(1,-8,0,9); sel.Size = UDim2.new(0,65,0,20); sel.ZIndex = 13; sel.AutoButtonColor = false; sel.BorderSizePixel = 0; sel.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold); sel.Text = cur; sel.TextColor3 = Theme.Accent; sel.TextSize = 10; sel.Parent = f; corner(sel, UDim.new(0,6))
 
-			local label = Instance.new("TextLabel")
-			label.BackgroundTransparency = 1
-			label.Position = UDim2.new(0, 12, 0, 0)
-			label.Size = UDim2.new(1, -56, 0, 38)
-			label.ZIndex = 12
-			label.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium)
-			label.Text = cfg.Name or "Dropdown"
-			label.TextColor3 = Theme.Text2
-			label.TextSize = 12
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			label.Parent = frame
+			local ol = Instance.new("Frame"); ol.BackgroundTransparency = 1; ol.Position = UDim2.new(0,0,0,38); ol.Size = UDim2.new(1,0,0,#opts*28); ol.ZIndex = 12; ol.Parent = f
+			local oll = Instance.new("UIListLayout"); oll.Padding = UDim.new(0,2); oll.SortOrder = Enum.SortOrder.LayoutOrder; oll.Parent = ol
+			local olp = Instance.new("UIPadding"); olp.PaddingLeft = UDim.new(0,8); olp.PaddingRight = UDim.new(0,8); olp.PaddingTop = UDim.new(0,2); olp.Parent = ol
 
-			local selected = Instance.new("TextButton")
-			selected.AnchorPoint = Vector2.new(1, 0)
-			selected.BackgroundColor3 = Theme.ValueBg
-			selected.Position = UDim2.new(1, -8, 0, 9)
-			selected.Size = UDim2.new(0, 65, 0, 20)
-			selected.ZIndex = 13
-			selected.AutoButtonColor = false
-			selected.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
-			selected.Text = current
-			selected.TextColor3 = Theme.Accent
-			selected.TextSize = 10
-			selected.Parent = frame
-			corner(selected, UDim.new(0, 6))
-
-			local optionList = Instance.new("Frame")
-			optionList.BackgroundTransparency = 1
-			optionList.Position = UDim2.new(0, 0, 0, 38)
-			optionList.Size = UDim2.new(1, 0, 0, #options * 28)
-			optionList.ZIndex = 12
-			optionList.Parent = frame
-
-			local oLayout = Instance.new("UIListLayout")
-			oLayout.Padding = UDim.new(0, 2)
-			oLayout.SortOrder = Enum.SortOrder.LayoutOrder
-			oLayout.Parent = optionList
-
-			local oPad = Instance.new("UIPadding")
-			oPad.PaddingLeft = UDim.new(0, 8)
-			oPad.PaddingRight = UDim.new(0, 8)
-			oPad.PaddingTop = UDim.new(0, 2)
-			oPad.Parent = optionList
-
-			for i, opt in ipairs(options) do
-				local optBtn = Instance.new("TextButton")
-				optBtn.BackgroundColor3 = Theme.Bg
-				optBtn.BackgroundTransparency = 0.5
-				optBtn.Size = UDim2.new(1, 0, 0, 26)
-				optBtn.ZIndex = 13
-				optBtn.AutoButtonColor = false
-				optBtn.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium)
-				optBtn.Text = opt
-				optBtn.TextColor3 = opt == current and Theme.Accent or Theme.Text2
-				optBtn.TextSize = 11
-				optBtn.LayoutOrder = i
-				optBtn.Parent = optionList
-				corner(optBtn, UDim.new(0, 6))
-
-				optBtn.MouseButton1Click:Connect(function()
-					current = opt
-					selected.Text = opt
-					for _, c in ipairs(optionList:GetChildren()) do
-						if c:IsA("TextButton") then
-							tween(c, Tw.Fast, {TextColor3 = c.Text == opt and Theme.Accent or Theme.Text2})
-						end
-					end
-					-- Auto-close dropdown
-					isOpen = false
-					tween(frame, Tw.Silk, {Size = UDim2.new(1, 0, 0, 38)})
-					task.spawn(callback, opt)
-				end)
-
-				optBtn.InputBegan:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseMovement then
-						tween(optBtn, Tw.Micro, {BackgroundTransparency = 0})
-					end
-				end)
-				optBtn.InputEnded:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseMovement then
-						tween(optBtn, Tw.Micro, {BackgroundTransparency = 0.5})
-					end
-				end)
+			for i, opt in ipairs(opts) do
+				local ob = Instance.new("TextButton"); ob.BackgroundColor3 = Theme.Bg; ob.BackgroundTransparency = 0.5; ob.Size = UDim2.new(1,0,0,26); ob.ZIndex = 13; ob.AutoButtonColor = false; ob.BorderSizePixel = 0; ob.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium); ob.Text = opt; ob.TextColor3 = opt == cur and Theme.Accent or Theme.Text2; ob.TextSize = 11; ob.LayoutOrder = i; ob.Parent = ol; corner(ob, UDim.new(0,6))
+				ob.MouseButton1Click:Connect(function() cur = opt; sel.Text = opt; for _, c in ipairs(ol:GetChildren()) do if c:IsA("TextButton") then tw(c, Tw.Fast, {TextColor3 = c.Text == opt and Theme.Accent or Theme.Text2}) end end; isOpen = false; tw(f, Tw.Silk, {Size = UDim2.new(1,0,0,38)}); task.spawn(cb, opt) end)
+				ob.InputBegan:Connect(function(ii) if ii.UserInputType == Enum.UserInputType.MouseMovement then tw(ob, Tw.Micro, {BackgroundTransparency = 0}) end end)
+				ob.InputEnded:Connect(function(ii) if ii.UserInputType == Enum.UserInputType.MouseMovement then tw(ob, Tw.Micro, {BackgroundTransparency = 0.5}) end end)
 			end
-
-			selected.MouseButton1Click:Connect(function()
-				isOpen = not isOpen
-				local targetH = isOpen and (38 + #options * 28 + 10) or 38
-				tween(frame, Tw.Spring, {Size = UDim2.new(1, 0, 0, targetH)})
-			end)
-
-			hoverEffect(frame, fStroke)
-
-			local dropAPI = {}
-			function dropAPI:Set(val) selected.Text = val; current = val; task.spawn(callback, val) end
-			function dropAPI:Get() return current end
-			return dropAPI
+			sel.MouseButton1Click:Connect(function() isOpen = not isOpen; tw(f, Tw.Spring, {Size = UDim2.new(1,0,0, isOpen and (38+#opts*28+10) or 38)}) end)
+			hoverFx(f, fs)
+			local api = {}; function api:Set(v) sel.Text = v; cur = v; task.spawn(cb, v) end; function api:Get() return cur end; return api
 		end
 
 		function Tab:CreateKeybind(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
-			local currentKey = cfg.Default or Enum.KeyCode.Unknown
-			local callback = cfg.Callback or function() end
+			local curKey = cfg.Default or Enum.KeyCode.Unknown
+			local cb = cfg.Callback or function() end
 			local listening = false
 
-			local frame = Instance.new("Frame")
-			frame.Name = "Keybind_" .. (cfg.Name or "Keybind")
-			frame.BackgroundColor3 = Theme.Card
-			frame.LayoutOrder = tabData.itemCount
-			frame.Size = UDim2.new(1, 0, 0, 38)
-			frame.ZIndex = 11
-			frame.Parent = container
-			corner(frame, UDim.new(0, 10))
-			local fStroke = stroke(frame, Theme.Border, 1, 0.3)
+			local f = Instance.new("Frame"); f.Name = "KB_"..(cfg.Name or "KB"); f.BackgroundColor3 = Theme.Card; f.LayoutOrder = tabData.itemCount; f.Size = UDim2.new(1,0,0,38); f.ZIndex = 11; f.Parent = container; corner(f, UDim.new(0,10))
+			local fs = stroke(f, Theme.Border, 1, 0.3)
+			local lbl = Instance.new("TextLabel"); lbl.BackgroundTransparency = 1; lbl.Position = UDim2.new(0,12,0,0); lbl.Size = UDim2.new(1,-56,1,0); lbl.ZIndex = 12; lbl.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium); lbl.Text = cfg.Name or "Keybind"; lbl.TextColor3 = Theme.Text2; lbl.TextSize = 12; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = f
+			local kb = Instance.new("TextButton"); kb.AnchorPoint = Vector2.new(1,0.5); kb.BackgroundColor3 = Theme.ValueBg; kb.Position = UDim2.new(1,-8,0.5,0); kb.Size = UDim2.new(0,50,0,20); kb.ZIndex = 13; kb.AutoButtonColor = false; kb.BorderSizePixel = 0; kb.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold); kb.Text = curKey == Enum.KeyCode.Unknown and "..." or curKey.Name; kb.TextColor3 = Theme.Accent; kb.TextSize = 10; kb.Parent = f; corner(kb, UDim.new(0,6))
+			hoverFx(f, fs)
 
-			local label = Instance.new("TextLabel")
-			label.BackgroundTransparency = 1
-			label.Position = UDim2.new(0, 12, 0, 0)
-			label.Size = UDim2.new(1, -56, 1, 0)
-			label.ZIndex = 12
-			label.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium)
-			label.Text = cfg.Name or "Keybind"
-			label.TextColor3 = Theme.Text2
-			label.TextSize = 12
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			label.Parent = frame
-
-			local keyBtn = Instance.new("TextButton")
-			keyBtn.BorderSizePixel = 0
-			keyBtn.AnchorPoint = Vector2.new(1, 0.5)
-			keyBtn.BackgroundColor3 = Theme.ValueBg
-			keyBtn.Position = UDim2.new(1, -8, 0.5, 0)
-			keyBtn.Size = UDim2.new(0, 50, 0, 20)
-			keyBtn.ZIndex = 13
-			keyBtn.AutoButtonColor = false
-			keyBtn.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
-			keyBtn.Text = currentKey == Enum.KeyCode.Unknown and "..." or currentKey.Name
-			keyBtn.TextColor3 = Theme.Accent
-			keyBtn.TextSize = 10
-			keyBtn.Parent = frame
-			corner(keyBtn, UDim.new(0, 6))
-
-			hoverEffect(frame, fStroke)
-
-			keyBtn.MouseButton1Click:Connect(function()
-				listening = true
-				keyBtn.Text = "..."
-				tween(keyBtn, Tw.Fast, {BackgroundColor3 = Theme.Accent, TextColor3 = Color3.fromRGB(255, 255, 255)})
-			end)
-
+			kb.MouseButton1Click:Connect(function() listening = true; kb.Text = "..."; tw(kb, Tw.Fast, {BackgroundColor3 = Theme.Accent, TextColor3 = Color3.fromRGB(255,255,255)}) end)
 			UserInputService.InputBegan:Connect(function(input, gpe)
 				if listening then
 					if input.UserInputType == Enum.UserInputType.Keyboard then
-						currentKey = input.KeyCode
-						keyBtn.Text = input.KeyCode.Name
-						listening = false
-						tween(keyBtn, Tw.Silk, {BackgroundColor3 = Theme.ValueBg, TextColor3 = Theme.Accent})
+						curKey = input.KeyCode; kb.Text = input.KeyCode.Name; listening = false
+						tw(kb, Tw.Silk, {BackgroundColor3 = Theme.ValueBg, TextColor3 = Theme.Accent})
 					end
 					return
 				end
 				if gpe then return end
-				if input.KeyCode == currentKey then
-					task.spawn(callback, currentKey)
-				end
+				if input.KeyCode == curKey then task.spawn(cb, curKey) end
 			end)
-
-			local kbAPI = {}
-			function kbAPI:Get() return currentKey end
-			function kbAPI:Set(key) currentKey = key; keyBtn.Text = key.Name end
-			return kbAPI
+			local api = {}; function api:Get() return curKey end; function api:Set(k) curKey = k; kb.Text = k.Name end; return api
 		end
 
 		function Tab:CreateInput(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
-			local callback = cfg.Callback or function() end
+			local cb = cfg.Callback or function() end
 
-			local frame = Instance.new("Frame")
-			frame.Name = "Input_" .. (cfg.Name or "Input")
-			frame.BackgroundColor3 = Theme.Card
-			frame.LayoutOrder = tabData.itemCount
-			frame.Size = UDim2.new(1, 0, 0, 38)
-			frame.ZIndex = 11
-			frame.Parent = container
-			corner(frame, UDim.new(0, 10))
-			local fStroke = stroke(frame, Theme.Border, 1, 0.3)
-
-			local label = Instance.new("TextLabel")
-			label.BackgroundTransparency = 1
-			label.Position = UDim2.new(0, 12, 0, 0)
-			label.Size = UDim2.new(0.45, 0, 1, 0)
-			label.ZIndex = 12
-			label.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium)
-			label.Text = cfg.Name or "Input"
-			label.TextColor3 = Theme.Text2
-			label.TextSize = 12
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			label.Parent = frame
-
-			local box = Instance.new("TextBox")
-			box.AnchorPoint = Vector2.new(1, 0.5)
-			box.BackgroundColor3 = Theme.ValueBg
-			box.Position = UDim2.new(1, -8, 0.5, 0)
-			box.Size = UDim2.new(0.45, 0, 0, 22)
-			box.ZIndex = 13
-			box.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium)
-			box.Text = cfg.Default or ""
-			box.PlaceholderText = cfg.Placeholder or "..."
-			box.PlaceholderColor3 = Theme.TextDim
-			box.TextColor3 = Theme.Text1
-			box.TextSize = 11
-			box.ClearTextOnFocus = false
-			box.Parent = frame
-			corner(box, UDim.new(0, 6))
-
-			hoverEffect(frame, fStroke)
-
-			box.Focused:Connect(function()
-				tween(fStroke, Tw.Fast, {Color = Theme.Accent})
-			end)
-
-			box.FocusLost:Connect(function(enterPressed)
-				tween(fStroke, Tw.Silk, {Color = Theme.Border})
-				if enterPressed then
-					task.spawn(callback, box.Text)
-				end
-			end)
-
-			local inputAPI = {}
-			function inputAPI:Get() return box.Text end
-			function inputAPI:Set(v) box.Text = v end
-			return inputAPI
+			local f = Instance.new("Frame"); f.Name = "Input_"..(cfg.Name or "Input"); f.BackgroundColor3 = Theme.Card; f.LayoutOrder = tabData.itemCount; f.Size = UDim2.new(1,0,0,38); f.ZIndex = 11; f.Parent = container; corner(f, UDim.new(0,10))
+			local fs = stroke(f, Theme.Border, 1, 0.3)
+			local lbl = Instance.new("TextLabel"); lbl.BackgroundTransparency = 1; lbl.Position = UDim2.new(0,12,0,0); lbl.Size = UDim2.new(0.45,0,1,0); lbl.ZIndex = 12; lbl.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium); lbl.Text = cfg.Name or "Input"; lbl.TextColor3 = Theme.Text2; lbl.TextSize = 12; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = f
+			local box = Instance.new("TextBox"); box.AnchorPoint = Vector2.new(1,0.5); box.BackgroundColor3 = Theme.ValueBg; box.Position = UDim2.new(1,-8,0.5,0); box.Size = UDim2.new(0.45,0,0,22); box.ZIndex = 13; box.BorderSizePixel = 0; box.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium); box.Text = cfg.Default or ""; box.PlaceholderText = cfg.Placeholder or "..."; box.PlaceholderColor3 = Theme.TextDim; box.TextColor3 = Theme.Text1; box.TextSize = 11; box.ClearTextOnFocus = false; box.Parent = f; corner(box, UDim.new(0,6))
+			hoverFx(f, fs)
+			box.Focused:Connect(function() tw(fs, Tw.Fast, {Color = Theme.Accent}) end)
+			box.FocusLost:Connect(function(ep) tw(fs, Tw.Silk, {Color = Theme.Border}); if ep then task.spawn(cb, box.Text) end end)
+			local api = {}; function api:Get() return box.Text end; function api:Set(v) box.Text = v end; return api
 		end
 
 		function Tab:CreateLabel(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
-
-			local label = Instance.new("TextLabel")
-			label.Name = "Label"
-			label.BackgroundTransparency = 1
-			label.LayoutOrder = tabData.itemCount
-			label.Size = UDim2.new(1, 0, 0, 24)
-			label.ZIndex = 11
-			label.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
-			label.Text = cfg.Text or "Label"
-			label.TextColor3 = Theme.TextDim
-			label.TextSize = 10
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			label.Parent = container
-
-			local lPad = Instance.new("UIPadding")
-			lPad.PaddingLeft = UDim.new(0, 4)
-			lPad.Parent = label
-
-			local labelAPI = {}
-			function labelAPI:Set(text) label.Text = text end
-			return labelAPI
+			local lbl = Instance.new("TextLabel"); lbl.Name = "Label"; lbl.BackgroundTransparency = 1; lbl.LayoutOrder = tabData.itemCount; lbl.Size = UDim2.new(1,0,0,24); lbl.ZIndex = 11; lbl.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold); lbl.Text = cfg.Text or "Label"; lbl.TextColor3 = Theme.TextDim; lbl.TextSize = 10; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = container
+			local lp = Instance.new("UIPadding"); lp.PaddingLeft = UDim.new(0,4); lp.Parent = lbl
+			local api = {}; function api:Set(t) lbl.Text = t end; return api
 		end
 
 		function Tab:CreateSeparator()
 			tabData.itemCount = tabData.itemCount + 1
-			local sep = Instance.new("Frame")
-			sep.Name = "Separator"
-			sep.BackgroundColor3 = Theme.Border
-			sep.BorderSizePixel = 0
-			sep.LayoutOrder = tabData.itemCount
-			sep.Size = UDim2.new(0.85, 0, 0, 1)
-			sep.ZIndex = 11
-			sep.Parent = container
+			local s = Instance.new("Frame"); s.Name = "Sep"; s.BackgroundColor3 = Theme.Border; s.BorderSizePixel = 0; s.LayoutOrder = tabData.itemCount; s.Size = UDim2.new(0.85,0,0,1); s.ZIndex = 11; s.Parent = container
 		end
 
 		return Tab
 	end
 
-	-- Entrance animation
 	navbar.BackgroundTransparency = 1
-	task.defer(function()
-		task.wait(0.05)
-		tween(navbar, Tw.Bounce, {BackgroundTransparency = 0})
-	end)
+	task.spawn(function() task.wait(0.05); tw(navbar, Tw.Bounce, {BackgroundTransparency = 0}) end)
 
-	function Window:Destroy()
-		gui:Destroy()
-	end
-
-	function Window:Toggle()
-		self.visible = not self.visible
-		gui.Enabled = self.visible
-	end
+	function Window:Destroy() gui:Destroy() end
+	function Window:Toggle() self.visible = not self.visible; gui.Enabled = self.visible end
 
 	return Window
 end
