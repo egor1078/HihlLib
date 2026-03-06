@@ -70,9 +70,26 @@ local function fillGrad()
 	return g
 end
 
+local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+
 local function hoverFx(frame, fs)
-	frame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement then tw(frame, Tw.Hover, {BackgroundColor3 = Theme.CardHover}); if fs then tw(fs, Tw.Hover, {Color = Theme.BorderHover}) end end end)
-	frame.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement then tw(frame, Tw.Hover, {BackgroundColor3 = Theme.Card}); if fs then tw(fs, Tw.Hover, {Color = Theme.Border}) end end end)
+	-- Mouse hover
+	frame.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseMovement then
+			tw(frame, Tw.Hover, {BackgroundColor3 = Theme.CardHover})
+			if fs then tw(fs, Tw.Hover, {Color = Theme.BorderHover}) end
+		-- Touch press feedback (mobile)
+		elseif i.UserInputType == Enum.UserInputType.Touch then
+			tw(frame, Tw.Micro, {BackgroundColor3 = Theme.CardHover})
+			if fs then tw(fs, Tw.Micro, {Color = Theme.BorderHover}) end
+		end
+	end)
+	frame.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+			tw(frame, Tw.Hover, {BackgroundColor3 = Theme.Card})
+			if fs then tw(fs, Tw.Hover, {Color = Theme.Border}) end
+		end
+	end)
 end
 
 local renderEvent = RunService.RenderStepped or RunService.Heartbeat
@@ -80,24 +97,37 @@ local renderEvent = RunService.RenderStepped or RunService.Heartbeat
 local function makeDraggable(handle, target, onDrag)
 	local dragging = false
 	local dragStart, startPos
+	local lastInputPos
 
 	handle.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			dragStart = input.Position
 			startPos = target.Position
+			lastInputPos = input.Position
 			input.Changed:Connect(function()
 				if input.UserInputState == Enum.UserInputState.End then dragging = false end
 			end)
 		end
 	end)
 
+	-- Track mouse & touch movement directly
+	handle.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			lastInputPos = input.Position
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			lastInputPos = input.Position
+		end
+	end)
+
 	renderEvent:Connect(function()
-		if not dragging then return end
-		local ok, mp = pcall(function() return UserInputService:GetMouseLocation() end)
-		if not ok then return end
-		local dx = mp.X - dragStart.X
-		local dy = mp.Y - dragStart.Y
+		if not dragging or not lastInputPos then return end
+		local dx = lastInputPos.X - dragStart.X
+		local dy = lastInputPos.Y - dragStart.Y
 		target.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + dx, startPos.Y.Scale, startPos.Y.Offset + dy)
 		if onDrag then onDrag() end
 	end)
@@ -378,7 +408,7 @@ function HihlLib:CreateWindow(config)
 		container.AutomaticCanvasSize = Enum.AutomaticSize.Y
 		container.CanvasSize = UDim2.new(0, 0, 0, 0)
 		container.ScrollBarImageColor3 = Theme.ScrollBar
-		container.ScrollBarThickness = 2
+		container.ScrollBarThickness = isMobile and 4 or 2
 		container.Parent = page
 
 		local cl = Instance.new("UIListLayout")
@@ -402,8 +432,18 @@ function HihlLib:CreateWindow(config)
 		tw(self.navbar, Tw.Spring, {Size = UDim2.new(0, btnCount * 46 + (btnCount - 1) * 4 + 16, 0, 46)})
 
 		icon.MouseButton1Click:Connect(function() openTab(tabName) end)
-		holder.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement and not tabData.active then tw(icon, Tw.Hover, {ImageColor3 = Theme.IconHover}); tw(holder, Tw.Hover, {BackgroundTransparency = 0.88}) end end)
-		holder.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement and not tabData.active then tw(icon, Tw.Hover, {ImageColor3 = Theme.IconIdle}); tw(holder, Tw.Hover, {BackgroundTransparency = 1}) end end)
+		holder.InputBegan:Connect(function(i)
+			if i.UserInputType == Enum.UserInputType.MouseMovement and not tabData.active then
+				tw(icon, Tw.Hover, {ImageColor3 = Theme.IconHover}); tw(holder, Tw.Hover, {BackgroundTransparency = 0.88})
+			elseif i.UserInputType == Enum.UserInputType.Touch and not tabData.active then
+				tw(icon, Tw.Micro, {ImageColor3 = Theme.IconHover})
+			end
+		end)
+		holder.InputEnded:Connect(function(i)
+			if (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) and not tabData.active then
+				tw(icon, Tw.Hover, {ImageColor3 = Theme.IconIdle}); tw(holder, Tw.Hover, {BackgroundTransparency = 1})
+			end
+		end)
 		icon.MouseButton1Down:Connect(function() tw(icon, Tw.Micro, {Size = UDim2.new(0, 15, 0, 15)}) end)
 		icon.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then tw(icon, Tw.Spring, {Size = UDim2.new(0, 18, 0, 18)}) end end)
 
@@ -462,6 +502,8 @@ function HihlLib:CreateWindow(config)
 			hoverFx(f, fs)
 
 			local sliding = false
+			local sliderInputX = 0
+
 			local function updateSlider(inputX)
 				if not bar or not bar.Parent then return end
 				local bx, bw = bar.AbsolutePosition.X, bar.AbsoluteSize.X
@@ -476,9 +518,32 @@ function HihlLib:CreateWindow(config)
 				if snapped ~= cur then cur = snapped; task.spawn(cb, snapped) end
 			end
 
-			trigger.MouseButton1Down:Connect(function() sliding = true; tw(knob, Tw.Spring, {Size = UDim2.new(0,16,0,16)}) end)
-			UserInputService.InputEnded:Connect(function(i) if (i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch) and sliding then sliding = false; tw(knob, Tw.Spring, {Size = UDim2.new(0,12,0,12)}) end end)
-			renderEvent:Connect(function() if not sliding then return end; local ok, mp = pcall(function() return UserInputService:GetMouseLocation() end); if ok then updateSlider(mp.X) end end)
+			-- Start sliding on mouse or touch
+			trigger.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+					sliding = true; sliderInputX = i.Position.X
+					tw(knob, Tw.Spring, {Size = UDim2.new(0,16,0,16)})
+					updateSlider(i.Position.X)
+				end
+			end)
+
+			-- Track movement for both mouse and touch
+			UserInputService.InputChanged:Connect(function(i)
+				if not sliding then return end
+				if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+					sliderInputX = i.Position.X
+				end
+			end)
+
+			-- Stop sliding
+			UserInputService.InputEnded:Connect(function(i)
+				if (i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch) and sliding then
+					sliding = false; tw(knob, Tw.Spring, {Size = UDim2.new(0,12,0,12)})
+				end
+			end)
+
+			-- Frame-perfect update
+			renderEvent:Connect(function() if sliding then updateSlider(sliderInputX) end end)
 
 			local api = {}
 			function api:Set(v) v = math.clamp(v, min, max); local sn = math.clamp(math.floor(v/inc+0.5)*inc, min, max); cur = sn; local p = (sn-min)/math.max(max-min,1); tw(fill, Tw.Silk, {Size = UDim2.new(p,0,1,0)}); tw(knob, Tw.Silk, {Position = UDim2.new(p,0,0.5,0)}); vl.Text = tostring(sn); task.spawn(cb, sn) end
@@ -496,8 +561,18 @@ function HihlLib:CreateWindow(config)
 			local lbl = Instance.new("TextLabel"); lbl.BackgroundTransparency = 1; lbl.Position = UDim2.new(0,12,0,0); lbl.Size = UDim2.new(1,-24,1,0); lbl.ZIndex = 12; lbl.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium); lbl.Text = cfg.Name or "Button"; lbl.TextColor3 = Theme.Text2; lbl.TextSize = 12; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = f
 			local arr = Instance.new("TextLabel"); arr.BackgroundTransparency = 1; arr.AnchorPoint = Vector2.new(1,0.5); arr.Position = UDim2.new(1,-12,0.5,0); arr.Size = UDim2.new(0,16,0,16); arr.ZIndex = 12; arr.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold); arr.Text = ">"; arr.TextColor3 = Theme.IconIdle; arr.TextSize = 16; arr.Parent = f
 
-			f.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement then tw(f, Tw.Hover, {BackgroundColor3 = Theme.CardHover}); tw(fs, Tw.Hover, {Color = Theme.BorderHover}) end end)
-			f.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement then tw(f, Tw.Hover, {BackgroundColor3 = Theme.Card}); tw(fs, Tw.Hover, {Color = Theme.Border}) end end)
+			f.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseMovement then
+					tw(f, Tw.Hover, {BackgroundColor3 = Theme.CardHover}); tw(fs, Tw.Hover, {Color = Theme.BorderHover})
+				elseif i.UserInputType == Enum.UserInputType.Touch then
+					tw(f, Tw.Micro, {BackgroundColor3 = Theme.CardHover})
+				end
+			end)
+			f.InputEnded:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+					tw(f, Tw.Hover, {BackgroundColor3 = Theme.Card}); tw(fs, Tw.Hover, {Color = Theme.Border})
+				end
+			end)
 			f.MouseButton1Down:Connect(function() tw(f, Tw.Micro, {BackgroundColor3 = Theme.Border}) end)
 			f.MouseButton1Click:Connect(function() tw(f, Tw.Silk, {BackgroundColor3 = Theme.Card}); tw(lbl, Tw.Fast, {TextColor3 = Theme.Accent}); task.spawn(function() task.wait(0.12); tw(lbl, Tw.Silk, {TextColor3 = Theme.Text2}) end); task.spawn(cb) end)
 		end
