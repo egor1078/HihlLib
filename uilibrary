@@ -1,10 +1,3 @@
---[[
-    ╔══════════════════════════════════════════════════════════╗
-    ║                 HihlLib Ultimate v4.0                    ║
-    ║   Professional Object-Oriented Interface Framework       ║
-    ╚══════════════════════════════════════════════════════════╝
-]]
-
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
@@ -141,6 +134,8 @@ local ThemeManager = {
             ToggleTrack  = Color3.fromRGB(30, 30, 40),
             ValueBg      = Color3.fromRGB(26, 26, 36),
             ScrollBar    = Color3.fromRGB(40, 40, 55),
+            IconIdle     = Color3.fromRGB(120, 120, 140),
+            IconHover    = Color3.fromRGB(180, 180, 200),
         },
         Midnight = {
             Bg           = Color3.fromRGB(8, 8, 12),
@@ -159,6 +154,8 @@ local ThemeManager = {
             ToggleTrack  = Color3.fromRGB(18, 18, 25),
             ValueBg      = Color3.fromRGB(18, 18, 25),
             ScrollBar    = Color3.fromRGB(35, 35, 45),
+            IconIdle     = Color3.fromRGB(110, 110, 130),
+            IconHover    = Color3.fromRGB(170, 170, 190),
         },
         Ocean = {
             Bg           = Color3.fromRGB(12, 16, 24),
@@ -177,6 +174,68 @@ local ThemeManager = {
             ToggleTrack  = Color3.fromRGB(24, 34, 48),
             ValueBg      = Color3.fromRGB(24, 34, 48),
             ScrollBar    = Color3.fromRGB(40, 60, 85),
+            IconIdle     = Color3.fromRGB(100, 130, 160),
+            IconHover    = Color3.fromRGB(160, 200, 230),
+        },
+        Cherry = {
+            Bg           = Color3.fromRGB(20, 10, 14),
+            Card         = Color3.fromRGB(28, 16, 20),
+            CardHover    = Color3.fromRGB(35, 20, 26),
+            Border       = Color3.fromRGB(45, 25, 35),
+            BorderLight  = Color3.fromRGB(50, 30, 40),
+            BorderHover  = Color3.fromRGB(60, 35, 48),
+            Accent       = Color3.fromRGB(220, 50, 80),
+            AccentDark   = Color3.fromRGB(180, 30, 60),
+            AccentLight  = Color3.fromRGB(255, 90, 120),
+            Text1        = Color3.fromRGB(240, 230, 235),
+            Text2        = Color3.fromRGB(190, 170, 180),
+            TextDim      = Color3.fromRGB(90, 70, 80),
+            ToggleOff    = Color3.fromRGB(65, 45, 55),
+            ToggleTrack  = Color3.fromRGB(35, 20, 28),
+            ValueBg      = Color3.fromRGB(30, 18, 24),
+            ScrollBar    = Color3.fromRGB(55, 35, 45),
+            IconIdle     = Color3.fromRGB(140, 110, 120),
+            IconHover    = Color3.fromRGB(200, 170, 180),
+        },
+        Mint = {
+            Bg           = Color3.fromRGB(10, 18, 16),
+            Card         = Color3.fromRGB(16, 26, 24),
+            CardHover    = Color3.fromRGB(20, 32, 30),
+            Border       = Color3.fromRGB(28, 42, 38),
+            BorderLight  = Color3.fromRGB(32, 48, 44),
+            BorderHover  = Color3.fromRGB(40, 58, 52),
+            Accent       = Color3.fromRGB(0, 210, 160),
+            AccentDark   = Color3.fromRGB(0, 170, 130),
+            AccentLight  = Color3.fromRGB(80, 235, 190),
+            Text1        = Color3.fromRGB(225, 245, 240),
+            Text2        = Color3.fromRGB(160, 195, 185),
+            TextDim      = Color3.fromRGB(70, 95, 88),
+            ToggleOff    = Color3.fromRGB(55, 75, 70),
+            ToggleTrack  = Color3.fromRGB(20, 32, 28),
+            ValueBg      = Color3.fromRGB(18, 28, 26),
+            ScrollBar    = Color3.fromRGB(38, 58, 52),
+            IconIdle     = Color3.fromRGB(100, 140, 130),
+            IconHover    = Color3.fromRGB(160, 210, 195),
+        },
+        Grape = {
+            Bg           = Color3.fromRGB(14, 10, 20),
+            Card         = Color3.fromRGB(22, 16, 30),
+            CardHover    = Color3.fromRGB(28, 20, 38),
+            Border       = Color3.fromRGB(38, 28, 50),
+            BorderLight  = Color3.fromRGB(44, 34, 58),
+            BorderHover  = Color3.fromRGB(55, 42, 70),
+            Accent       = Color3.fromRGB(160, 90, 255),
+            AccentDark   = Color3.fromRGB(130, 60, 220),
+            AccentLight  = Color3.fromRGB(190, 130, 255),
+            Text1        = Color3.fromRGB(235, 230, 245),
+            Text2        = Color3.fromRGB(180, 170, 200),
+            TextDim      = Color3.fromRGB(85, 75, 100),
+            ToggleOff    = Color3.fromRGB(60, 50, 75),
+            ToggleTrack  = Color3.fromRGB(25, 18, 35),
+            ValueBg      = Color3.fromRGB(22, 16, 32),
+            ScrollBar    = Color3.fromRGB(50, 40, 65),
+            IconIdle     = Color3.fromRGB(120, 105, 145),
+            IconHover    = Color3.fromRGB(180, 165, 210),
         }
     }
 }
@@ -287,9 +346,11 @@ end
 local HihlLib = {
     Windows = {},
     TweenData = {
+        Micro = TweenInfo.new(0.08, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
         Fast = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
         Smooth = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
         Pop = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        Slow = TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
     }
 }
 
@@ -318,7 +379,7 @@ function HihlLib:CreateWindow(Config)
     Window.Gui = SG
 
     -- Navbar (Floating Top Bar)
-    local Navbar = Instance.new("Frame")
+    local Navbar = Instance.new("CanvasGroup")
     Navbar.Name = "Navbar"
     Navbar.AnchorPoint = Vector2.new(0.5, 0.5)
     Navbar.Position = UDim2.new(0.5, 0, 0.85, 0)
@@ -344,12 +405,13 @@ function HihlLib:CreateWindow(Config)
     PagesFolder.Parent = SG
 
     -- Tooltip System
-    local TooltipUI = Instance.new("Frame")
+    local TooltipUI = Instance.new("CanvasGroup")
     TooltipUI.Name = "TooltipCenter"
     TooltipUI.AnchorPoint = Vector2.new(0.5, 1)
     TooltipUI.Size = UDim2.new(0, 0, 0, 24)
     TooltipUI.Visible = false
     TooltipUI.ZIndex = 100
+    TooltipUI.GroupTransparency = 1
     TooltipUI.Parent = SG
     Utility:CreateCorner(6, TooltipUI)
     local TooltipStroke = Utility:CreateStroke(1, Color3.new(1,1,1), 0, TooltipUI)
@@ -471,7 +533,6 @@ function HihlLib:CreateWindow(Config)
         Holder.Size = UDim2.new(0, 42, 0, 34)
         Holder.Parent = Navbar
         Utility:CreateCorner(10, Holder)
-        ThemeManager:Register(Holder, {BackgroundColor3 = "Card"})
         
         local Icon = Instance.new("ImageButton")
         Icon.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -846,8 +907,7 @@ function HihlLib:CreateWindow(Config)
                             Utility:Tween(kbBtn, HihlLib.TweenData.Smooth, {BackgroundColor3 = ThemeManager:GetColor("ValueBg"), TextColor3 = ThemeManager:GetColor("Text2")})
                         end)
                         if tgl.Keybind.Callback then task.spawn(tgl.Keybind.Callback, i.KeyCode) else
-                            tgl.Value = not tgl.Value
-                            task.spawn(function() f.MouseButton1Click:Fire() end)
+                            setState()
                         end
                     end
                 end)
@@ -2040,14 +2100,7 @@ function HihlLib:CreateWindow(Config)
             lbl.Parent = f
             Utility:CreateCorner(6, lbl)
             
-            if img.Url and not (img.Image and img.Image ~= "") then
-                task.spawn(function()
-                    local id = Utility:GetCustomAsset(img.Url)
-                    if id then lbl.Image = id end
-                end)
-            else
-                lbl.Image = img.Image
-            end
+            lbl.Image = img.Image
 
             local api = self:AddElement(nil, "Image", f)
             function api:Set(id) lbl.Image = id end
@@ -2080,14 +2133,7 @@ function HihlLib:CreateWindow(Config)
             imgBtn.Parent = f
             Utility:CreateCorner(6, imgBtn)
             
-            if btn.Url and not (btn.Image and btn.Image ~= "") then
-                task.spawn(function()
-                    local id = Utility:GetCustomAsset(btn.Url)
-                    if id then imgBtn.Image = id end
-                end)
-            else
-                imgBtn.Image = btn.Image
-            end
+            imgBtn.Image = btn.Image
 
             imgBtn.InputBegan:Connect(function(i)
                 if i.UserInputType == Enum.UserInputType.MouseMovement then
@@ -2115,6 +2161,8 @@ function HihlLib:CreateWindow(Config)
             return api
         end
 
+
+
         return Tab
     end
 
@@ -2131,7 +2179,7 @@ function HihlLib:CreateWindow(Config)
         bg.BorderSizePixel = 0
         bg.Size = UDim2.new(1, 0, 1, 0)
         bg.ZIndex = 100
-        bg.Parent = Main
+        bg.Parent = SG
         
         local btn = Instance.new("TextButton")
         btn.BackgroundTransparency = 1
@@ -2352,6 +2400,30 @@ function HihlLib:CreateWindow(Config)
     function Window:ToggleKeybindList(state)
         Window.KeybindListState = state
         Window:UpdateKeybinds()
+    end
+
+    function Window:Toggle()
+        Window.Visible = not Window.Visible
+        if Window.Visible then
+            SG.Enabled = true
+            Utility:Tween(Navbar, HihlLib.TweenData.Pop, {Size = UDim2.new(0, #Window.TabList * 46 + (#Window.TabList - 1) * 4 + 16, 0, 46), GroupTransparency = 0})
+            if Window.ActiveTab and Window.Tabs[Window.ActiveTab] then
+                local p = Window.Tabs[Window.ActiveTab].Page
+                p.Position = GetPagePos()
+                p.Visible = true
+                Utility:Tween(p, HihlLib.TweenData.Pop, {Size = Sizes.Full, GroupTransparency = 0})
+            end
+        else
+            Utility:Tween(Navbar, HihlLib.TweenData.Smooth, {Size = UDim2.new(0, 100, 0, 30), GroupTransparency = 1})
+            if Window.ActiveTab and Window.Tabs[Window.ActiveTab] then
+                Utility:Tween(Window.Tabs[Window.ActiveTab].Page, HihlLib.TweenData.Smooth, {Size = Sizes.Mini, GroupTransparency = 1}).Completed:Connect(function()
+                    if not Window.Visible then SG.Enabled = false end
+                end)
+            else
+                task.wait(0.3)
+                SG.Enabled = false
+            end
+        end
     end
 
     function Window:Destroy()
