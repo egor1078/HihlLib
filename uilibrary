@@ -1027,23 +1027,26 @@ function HihlLib:CreateWindow(config)
 			local preview = Instance.new("TextButton")
 			preview.AnchorPoint = Vector2.new(1, 0.5); preview.BackgroundColor3 = curColor; preview.Position = UDim2.new(1, -8, 0, 19)
 			preview.Size = UDim2.new(0, 28, 0, 18); preview.ZIndex = 13; preview.AutoButtonColor = false; preview.BorderSizePixel = 0; preview.Text = ""; preview.Parent = f; corner(preview, UDim.new(0, 6))
+			addStroke(preview, Theme.BorderLight, 1, 0.5)
 
 			local pa = Instance.new("Frame")
-			pa.BackgroundTransparency = 1; pa.Position = UDim2.new(0, 8, 0, 42); pa.Size = UDim2.new(1, -16, 0, 120); pa.ZIndex = 12; pa.Parent = f
+			pa.BackgroundTransparency = 1; pa.Position = UDim2.new(0, 8, 0, 44); pa.Size = UDim2.new(1, -16, 0, 140); pa.ZIndex = 12; pa.Parent = f
 
+			-- Saturation / Value Box
 			local svBox = Instance.new("Frame")
-			svBox.BackgroundColor3 = Color3.fromHSV(h, 1, 1); svBox.Size = UDim2.new(1, -22, 1, 0); svBox.ZIndex = 13; svBox.Parent = pa; corner(svBox, UDim.new(0, 6))
+			svBox.BackgroundColor3 = Color3.fromHSV(h, 1, 1); svBox.Size = UDim2.new(1, -24, 1, 0); svBox.ZIndex = 13; svBox.Parent = pa; corner(svBox, UDim.new(0, 6))
 			local wG = Instance.new("UIGradient"); wG.Color = ColorSequence.new(Color3.new(1,1,1), Color3.new(1,1,1)); wG.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1)}); wG.Parent = svBox
 			local bO = Instance.new("Frame"); bO.BackgroundColor3 = Color3.new(0,0,0); bO.Size = UDim2.new(1,0,1,0); bO.ZIndex = 14; bO.Parent = svBox; corner(bO, UDim.new(0, 6))
 			local bG = Instance.new("UIGradient"); bG.Color = ColorSequence.new(Color3.new(0,0,0), Color3.new(0,0,0)); bG.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0)}); bG.Rotation = 270; bG.Parent = bO
 
-			local svC = Instance.new("Frame"); svC.AnchorPoint = Vector2.new(0.5,0.5); svC.BackgroundColor3 = Color3.new(1,1,1); svC.Size = UDim2.new(0,10,0,10); svC.ZIndex = 16; svC.Position = UDim2.new(s, 0, 1 - v, 0); svC.Parent = svBox; corner(svC, UDim.new(1,0)); addStroke(svC, Color3.new(0,0,0), 1, 0.5)
-
-			local hBar = Instance.new("Frame"); hBar.AnchorPoint = Vector2.new(1,0); hBar.Position = UDim2.new(1,0,0,0); hBar.Size = UDim2.new(0,14,1,0); hBar.ZIndex = 13; hBar.Parent = pa; corner(hBar, UDim.new(0, 6))
+			local svC = Instance.new("Frame"); svC.AnchorPoint = Vector2.new(0.5,0.5); svC.BackgroundColor3 = curColor; svC.Size = UDim2.new(0,12,0,12); svC.ZIndex = 16; svC.Position = UDim2.new(s, 0, 1 - v, 0); svC.Parent = svBox; corner(svC, UDim.new(1,0)); addStroke(svC, Color3.new(1,1,1), 2, 0)
+			
+			-- Hue Bar
+			local hBar = Instance.new("Frame"); hBar.AnchorPoint = Vector2.new(1,0); hBar.Position = UDim2.new(1,0,0,0); hBar.Size = UDim2.new(0,16,1,0); hBar.ZIndex = 13; hBar.Parent = pa; corner(hBar, UDim.new(0, 6))
 			local hGrad = Instance.new("UIGradient")
 			hGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromHSV(0,1,1)), ColorSequenceKeypoint.new(0.167, Color3.fromHSV(0.167,1,1)), ColorSequenceKeypoint.new(0.333, Color3.fromHSV(0.333,1,1)), ColorSequenceKeypoint.new(0.5, Color3.fromHSV(0.5,1,1)), ColorSequenceKeypoint.new(0.667, Color3.fromHSV(0.667,1,1)), ColorSequenceKeypoint.new(0.833, Color3.fromHSV(0.833,1,1)), ColorSequenceKeypoint.new(1, Color3.fromHSV(1,1,1))})
 			hGrad.Rotation = 270; hGrad.Parent = hBar
-			local hC = Instance.new("Frame"); hC.AnchorPoint = Vector2.new(0.5,0.5); hC.BackgroundColor3 = Color3.new(1,1,1); hC.Size = UDim2.new(1,4,0,6); hC.ZIndex = 16; hC.Position = UDim2.new(0.5, 0, h, 0); hC.Parent = hBar; corner(hC, UDim.new(0,3))
+			local hC = Instance.new("Frame"); hC.AnchorPoint = Vector2.new(0.5,0.5); hC.BackgroundColor3 = Color3.new(1,1,1); hC.Size = UDim2.new(1,6,0,8); hC.ZIndex = 16; hC.Position = UDim2.new(0.5, 0, h, 0); hC.Parent = hBar; corner(hC, UDim.new(0,4)); addStroke(hC, Color3.new(0,0,0), 1, 0.4)
 
 			local svT = Instance.new("TextButton"); svT.BackgroundTransparency = 1; svT.Size = UDim2.new(1,0,1,0); svT.ZIndex = 17; svT.Text = ""; svT.Parent = svBox
 			local hT = Instance.new("TextButton"); hT.BackgroundTransparency = 1; hT.Size = UDim2.new(1,0,1,0); hT.ZIndex = 17; hT.Text = ""; hT.Parent = hBar
@@ -1053,12 +1056,49 @@ function HihlLib:CreateWindow(config)
 			end
 
 			local dSV, dH = false, false
-			svT.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dSV = true; local p, sz = svBox.AbsolutePosition, svBox.AbsoluteSize; s = math.clamp((i.Position.X - p.X) / sz.X, 0, 1); v = 1 - math.clamp((i.Position.Y - p.Y) / sz.Y, 0, 1); applyColor() end end)
-			hT.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dH = true; h = math.clamp((i.Position.Y - hBar.AbsolutePosition.Y) / hBar.AbsoluteSize.Y, 0, 1); applyColor() end end)
-			UserInputService.InputChanged:Connect(function(i) if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then return end; if dSV then local p, sz = svBox.AbsolutePosition, svBox.AbsoluteSize; s = math.clamp((i.Position.X - p.X) / sz.X, 0, 1); v = 1 - math.clamp((i.Position.Y - p.Y) / sz.Y, 0, 1); applyColor() elseif dH then h = math.clamp((i.Position.Y - hBar.AbsolutePosition.Y) / hBar.AbsoluteSize.Y, 0, 1); applyColor() end end)
-			UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dSV = false; dH = false end end)
+			local lx, ly = 0, 0
 
-			preview.MouseButton1Click:Connect(function() isOpen = not isOpen; tw(f, Tw.Smooth, {Size = UDim2.new(1, 0, 0, isOpen and 170 or 38)}) end)
+			local function updateSV(nx, ny)
+				local p, sz = svBox.AbsolutePosition, svBox.AbsoluteSize
+				s = math.clamp((nx - p.X) / sz.X, 0, 1)
+				v = 1 - math.clamp((ny - p.Y) / sz.Y, 0, 1)
+				applyColor()
+			end
+
+			local function updateH(ny)
+				h = math.clamp((ny - hBar.AbsolutePosition.Y) / hBar.AbsoluteSize.Y, 0, 1)
+				applyColor()
+			end
+
+			svT.InputBegan:Connect(function(i) 
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then 
+					dSV = true; lx, ly = i.Position.X, i.Position.Y; tw(svC, Tw.Smooth, {Size = UDim2.new(0,16,0,16)}); updateSV(lx, ly) 
+				end 
+			end)
+			hT.InputBegan:Connect(function(i) 
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then 
+					dH = true; ly = i.Position.Y; tw(hC, Tw.Smooth, {Size = UDim2.new(1,8,0,10)}); updateH(ly) 
+				end 
+			end)
+			
+			UserInputService.InputChanged:Connect(function(i) 
+				if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then return end
+				if dSV then lx, ly = i.Position.X, i.Position.Y; updateSV(lx, ly)
+				elseif dH then ly = i.Position.Y; updateH(ly) end 
+			end)
+			
+			UserInputService.InputEnded:Connect(function(i) 
+				if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then 
+					if dSV then dSV = false; tw(svC, Tw.Smooth, {Size = UDim2.new(0,12,0,12)}) end
+					if dH then dH = false; tw(hC, Tw.Smooth, {Size = UDim2.new(1,6,0,8)}) end
+				end 
+			end)
+
+			renderEvent:Connect(function()
+				if dSV then updateSV(lx, ly) elseif dH then updateH(ly) end
+			end)
+
+			preview.MouseButton1Click:Connect(function() isOpen = not isOpen; tw(f, Tw.Pop, {Size = UDim2.new(1, 0, 0, isOpen and 192 or 38)}) end)
 			hoverFx(f, fs)
 			local api = {}
 			function api:Set(c) curColor = c; local r2,g2,b2 = c.R,c.G,c.B; local mx,mn = math.max(r2,g2,b2), math.min(r2,g2,b2); v = mx; s = mx == 0 and 0 or (mx-mn)/mx; if mx == mn then h = 0 elseif mx == r2 then h = (g2-b2)/(mx-mn)/6 elseif mx == g2 then h = ((b2-r2)/(mx-mn)+2)/6 else h = ((r2-g2)/(mx-mn)+4)/6 end; if h < 0 then h = h + 1 end; applyColor() end
@@ -1224,36 +1264,72 @@ function HihlLib:CreateWindow(config)
 	local nContainer = Instance.new("Frame")
 	nContainer.BackgroundTransparency = 1
 	nContainer.AnchorPoint = Vector2.new(1, 0)
-	nContainer.Position = UDim2.new(1, -10, 0, 10)
-	nContainer.Size = UDim2.new(0, 220, 1, -20)
+	nContainer.Position = UDim2.new(1, -15, 0, 15)
+	nContainer.Size = UDim2.new(0, 240, 1, -30)
 	nContainer.ZIndex = 50
 	nContainer.Parent = gui
 	local ncl = Instance.new("UIListLayout")
-	ncl.VerticalAlignment = Enum.VerticalAlignment.Top
+	ncl.VerticalAlignment = Enum.VerticalAlignment.Bottom
 	ncl.HorizontalAlignment = Enum.HorizontalAlignment.Right
-	ncl.Padding = UDim.new(0, 6)
+	ncl.Padding = UDim.new(0, 8)
 	ncl.SortOrder = Enum.SortOrder.LayoutOrder
 	ncl.Parent = nContainer
 
 	function Window:Notify(cfg)
 		cfg = cfg or {}
 		local dur = cfg.Duration or 3
-		local nf = Instance.new("Frame"); nf.BackgroundColor3 = Theme.Card; nf.Size = UDim2.new(1,0,0,0); nf.ZIndex = 51; nf.ClipsDescendants = true; nf.Parent = nContainer; corner(nf, UDim.new(0,10)); addStroke(nf, Theme.Accent, 1, 0.5)
-		local nt = Instance.new("TextLabel"); nt.BackgroundTransparency = 1; nt.Position = UDim2.new(0,10,0,6); nt.Size = UDim2.new(1,-20,0,14); nt.ZIndex = 52; nt.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold); nt.Text = cfg.Title or "Notification"; nt.TextColor3 = Theme.Accent; nt.TextSize = 11; nt.TextXAlignment = Enum.TextXAlignment.Left; nt.Parent = nf
-		local nb = Instance.new("TextLabel"); nb.BackgroundTransparency = 1; nb.Position = UDim2.new(0,10,0,22); nb.Size = UDim2.new(1,-20,0,24); nb.ZIndex = 52; nb.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular); nb.Text = cfg.Text or ""; nb.TextColor3 = Theme.Text2; nb.TextSize = 10; nb.TextWrapped = true; nb.TextXAlignment = Enum.TextXAlignment.Left; nb.TextYAlignment = Enum.TextYAlignment.Top; nb.Parent = nf
-		local nbar = Instance.new("Frame"); nbar.BackgroundColor3 = Theme.Accent; nbar.BorderSizePixel = 0; nbar.AnchorPoint = Vector2.new(0,1); nbar.Position = UDim2.new(0,0,1,0); nbar.Size = UDim2.new(1,0,0,2); nbar.ZIndex = 52; nbar.Parent = nf; fillGrad().Parent = nbar
-		tw(nf, Tw.Smooth, {Size = UDim2.new(1,0,0,52)})
+		
+		local nWrapper = Instance.new("Frame"); nWrapper.BackgroundTransparency = 1; nWrapper.Size = UDim2.new(1,0,0,60); nWrapper.ZIndex = 51; nWrapper.Parent = nContainer
+		local nf = Instance.new("Frame"); nf.BackgroundColor3 = Theme.Card; nf.Position = UDim2.new(1, 260, 0, 0); nf.Size = UDim2.new(1,0,1,0); nf.ZIndex = 51; nf.ClipsDescendants = true; nf.Parent = nWrapper; corner(nf, UDim.new(0,10)); addStroke(nf, Theme.BorderLight, 1, 0.2)
+		
+		local shadow = Instance.new("ImageLabel"); shadow.BackgroundTransparency = 1; shadow.Position = UDim2.new(0,-15,0,-15); shadow.Size = UDim2.new(1,30,1,30); shadow.ZIndex = 50; shadow.Image = "rbxassetid://5554236805"; shadow.ImageColor3 = Color3.new(0,0,0); shadow.ImageTransparency = 0.5; shadow.ScaleType = Enum.ScaleType.Slice; shadow.SliceCenter = Rect.new(23,23,273,273); shadow.Parent = nf
+		
+		local iconBg = Instance.new("Frame"); iconBg.BackgroundColor3 = Theme.Accent; iconBg.Position = UDim2.new(0,12,0.5,-12); iconBg.Size = UDim2.new(0,24,0,24); iconBg.ZIndex = 52; iconBg.Parent = nf; corner(iconBg, UDim.new(1,0)); fillGrad().Parent = iconBg
+		local iconImg = Instance.new("ImageLabel"); iconImg.BackgroundTransparency = 1; iconImg.AnchorPoint = Vector2.new(0.5,0.5); iconImg.Position = UDim2.new(0.5,0,0.5,0); iconImg.Size = UDim2.new(0,12,0,12); iconImg.ZIndex = 53; iconImg.Image = "rbxassetid://10723407389"; iconImg.ImageColor3 = Color3.new(1,1,1); iconImg.Parent = iconBg
+
+		local nt = Instance.new("TextLabel"); nt.BackgroundTransparency = 1; nt.Position = UDim2.new(0,46,0,12); nt.Size = UDim2.new(1,-56,0,14); nt.ZIndex = 52; nt.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold); nt.Text = cfg.Title or "Notification"; nt.TextColor3 = Theme.Text1; nt.TextSize = 12; nt.TextXAlignment = Enum.TextXAlignment.Left; nt.Parent = nf
+		local nb = Instance.new("TextLabel"); nb.BackgroundTransparency = 1; nb.Position = UDim2.new(0,46,0,28); nb.Size = UDim2.new(1,-56,0,24); nb.ZIndex = 52; nb.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular); nb.Text = cfg.Text or ""; nb.TextColor3 = Theme.Text2; nb.TextSize = 10; nb.TextWrapped = true; nb.TextXAlignment = Enum.TextXAlignment.Left; nb.TextYAlignment = Enum.TextYAlignment.Top; nb.Parent = nf
+
+		local nbar = Instance.new("Frame"); nbar.BackgroundColor3 = Theme.Accent; nbar.BorderSizePixel = 0; nbar.AnchorPoint = Vector2.new(0,1); nbar.Position = UDim2.new(0,0,1,0); nbar.Size = UDim2.new(1,0,0,2); nbar.ZIndex = 54; nbar.Parent = nf; fillGrad().Parent = nbar
+		
+		tw(nf, Tw.Pop, {Position = UDim2.new(0,0,0,0)})
 		task.spawn(function()
 			tw(nbar, TweenInfo.new(dur, Enum.EasingStyle.Linear), {Size = UDim2.new(0,0,0,2)})
 			task.wait(dur)
-			tw(nf, Tw.Smooth, {Size = UDim2.new(1,0,0,0)})
+			tw(nf, Tw.Smooth, {Position = UDim2.new(1,260,0,0), GroupTransparency = 1})
 			task.wait(0.35)
-			nf:Destroy()
+			nWrapper:Destroy()
 		end)
 	end
 
 	function Window:Destroy() gui:Destroy() end
-	function Window:Toggle() self.visible = not self.visible; gui.Enabled = self.visible end
+	
+	local uiVisibleSize = true
+	function Window:Toggle() 
+		self.visible = not self.visible; 
+		if self.visible then
+			gui.Enabled = true
+			if Window.currentTab then
+				local tab = Window.tabs[Window.currentTab]
+				if tab then
+					tw(tab.page, Tw.Pop, {Size = fullSize, GroupTransparency = 0})
+					tab.page.Visible = true
+				end
+			end
+			tw(navbar, Tw.Pop, {Size = UDim2.new(0, #Window.tabOrder * 46 + (#Window.tabOrder - 1) * 4 + 16, 0, 46), GroupTransparency = 0})
+		else
+			if Window.currentTab then
+				local tab = Window.tabs[Window.currentTab]
+				if tab then
+					tw(tab.page, Tw.Smooth, {Size = UDim2.new(0, 200, 0, 165), GroupTransparency = 1})
+				end
+			end
+			local nt = tw(navbar, Tw.Smooth, {Size = UDim2.new(0, 100, 0, 30), GroupTransparency = 1})
+			nt.Completed:Connect(function()
+				if not self.visible then gui.Enabled = false end
+			end)
+		end
+	end
 
 	return Window
 end
