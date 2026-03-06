@@ -4,7 +4,21 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+
+-- Executor-safe GUI parent: try gethui > CoreGui > PlayerGui
+local playerGui
+local function getGuiParent()
+	if playerGui then return playerGui end
+	local ok, result = pcall(function()
+		if typeof(gethui) == "function" then return gethui() end
+	end)
+	if ok and result then playerGui = result return playerGui end
+	ok, result = pcall(function() return game:GetService("CoreGui") end)
+	if ok and result then playerGui = result return playerGui end
+	playerGui = player:WaitForChild("PlayerGui")
+	return playerGui
+end
+getGuiParent()
 
 local Theme = {
 	Bg           = Color3.fromRGB(14, 14, 20),
@@ -101,7 +115,7 @@ end
 -- Drag system — uses RenderStepped for frame-perfect movement
 local function makeDraggable(handle, target, onDrag)
 	local dragging = false
-	local dragStart = Vector3.zero
+	local dragStart = Vector3.new(0, 0, 0)
 	local startPos = UDim2.new()
 
 	handle.InputBegan:Connect(function(input)
@@ -118,9 +132,11 @@ local function makeDraggable(handle, target, onDrag)
 		end
 	end)
 
-	RunService.RenderStepped:Connect(function()
+	local renderConn = (RunService.RenderStepped or RunService.Heartbeat)
+	renderConn:Connect(function()
 		if not dragging then return end
-		local mousePos = UserInputService:GetMouseLocation()
+		local ok, mousePos = pcall(function() return UserInputService:GetMouseLocation() end)
+		if not ok then return end
 		local delta = Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(dragStart.X, dragStart.Y)
 		local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 		target.Position = newPos
@@ -139,7 +155,7 @@ function HihlLib:CreateWindow(config)
 	gui.Name = title:gsub("%s", "") .. "_UI"
 	gui.ResetOnSpawn = false
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	gui.Parent = playerGui
+	gui.Parent = getGuiParent()
 
 	local navbar = Instance.new("Frame")
 	navbar.Name = "Navbar"
@@ -231,7 +247,7 @@ function HihlLib:CreateWindow(config)
 			if accentLine then tween(accentLine, Tw.Fast, {Size = UDim2.new(0, 0, 0, 2)}) end
 			if pageStroke then tween(pageStroke, Tw.Fast, {Transparency = 1}) end
 			local t = tween(page, Tw.Silk, {Size = miniSize, GroupTransparency = 1})
-			t.Completed:Once(function()
+			t.Completed:Connect(function()
 				if Window.currentTab ~= name then page.Visible = false end
 				Window.locked = false
 			end)
@@ -250,7 +266,8 @@ function HihlLib:CreateWindow(config)
 				local enterSide = tab.order > oldTab.order and "right" or "left"
 
 				local exitT = tween(oldPage, Tw.Silk, {Position = getShifted(exitSide), Size = miniSize, GroupTransparency = 1})
-				exitT.Completed:Once(function() oldPage.Visible = false end)
+				exitT.Completed:Connect(function() oldPage.Visible = false end)
+
 
 				page.Position = getShifted(enterSide)
 				page.Size = miniSize
@@ -688,6 +705,7 @@ function HihlLib:CreateWindow(config)
 			local sliding = false
 
 			local function updateSlider(inputX)
+				if not bar or not bar.Parent then return end
 				local barPos = bar.AbsolutePosition.X
 				local barSize = bar.AbsoluteSize.X
 				if barSize <= 0 then return end
@@ -719,8 +737,8 @@ function HihlLib:CreateWindow(config)
 				end
 			end)
 
-			-- Frame-perfect tracking via RenderStepped
-			RunService.RenderStepped:Connect(function()
+			-- Frame-perfect tracking
+			(RunService.RenderStepped or RunService.Heartbeat):Connect(function()
 				if not sliding then return end
 				local mousePos = UserInputService:GetMouseLocation()
 				updateSlider(mousePos.X)
@@ -804,7 +822,7 @@ function HihlLib:CreateWindow(config)
 			frame.MouseButton1Click:Connect(function()
 				tween(frame, Tw.Silk, {BackgroundColor3 = Theme.Card})
 				tween(label, Tw.Fast, {TextColor3 = Theme.Accent})
-				task.defer(function()
+				task.spawn(function()
 					task.wait(0.12)
 					tween(label, Tw.Silk, {TextColor3 = Theme.Text2})
 				end)
@@ -960,6 +978,7 @@ function HihlLib:CreateWindow(config)
 			label.Parent = frame
 
 			local keyBtn = Instance.new("TextButton")
+			keyBtn.BorderSizePixel = 0
 			keyBtn.AnchorPoint = Vector2.new(1, 0.5)
 			keyBtn.BackgroundColor3 = Theme.ValueBg
 			keyBtn.Position = UDim2.new(1, -8, 0.5, 0)
