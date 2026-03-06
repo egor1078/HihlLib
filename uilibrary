@@ -1,17 +1,3 @@
---[[
-    ╔═══════════════════════════════════════════╗
-    ║          HihlLib UI Library v1.0          ║
-    ║     Premium Roblox UI Library             ║
-    ╚═══════════════════════════════════════════╝
-
-    Usage:
-        local HihlLib = loadstring(...)() -- or require
-        local Window = HihlLib:CreateWindow({ Title = "My Hub" })
-        local Tab = Window:CreateTab({ Name = "Main", Icon = "rbxassetid://..." })
-        Tab:CreateToggle({ Name = "Feature", Default = false, Callback = function(v) end })
-        Tab:CreateSlider({ Name = "Speed", Min = 0, Max = 100, Default = 50, Callback = function(v) end })
-]]
-
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
@@ -19,10 +5,6 @@ local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-
--- ═══════════════════════════════════════
--- THEME
--- ═══════════════════════════════════════
 
 local Theme = {
 	Bg           = Color3.fromRGB(14, 14, 20),
@@ -49,23 +31,16 @@ local Theme = {
 	ScrollBar    = Color3.fromRGB(40, 40, 55),
 }
 
--- ═══════════════════════════════════════
--- TWEEN PRESETS
--- ═══════════════════════════════════════
-
 local Tw = {
-	Silk     = TweenInfo.new(0.4,  Enum.EasingStyle.Quint,  Enum.EasingDirection.Out),
-	Slow     = TweenInfo.new(0.55, Enum.EasingStyle.Quint,  Enum.EasingDirection.Out),
-	Fast     = TweenInfo.new(0.22, Enum.EasingStyle.Quint,  Enum.EasingDirection.Out),
-	Snap     = TweenInfo.new(0.08, Enum.EasingStyle.Quint,  Enum.EasingDirection.Out),
-	Bounce   = TweenInfo.new(0.5,  Enum.EasingStyle.Back,   Enum.EasingDirection.Out),
-	Spring   = TweenInfo.new(0.55, Enum.EasingStyle.Back,   Enum.EasingDirection.Out),
-	Micro    = TweenInfo.new(0.15, Enum.EasingStyle.Quint,  Enum.EasingDirection.Out),
+	Silk     = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+	Slow     = TweenInfo.new(0.5,  Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+	Fast     = TweenInfo.new(0.2,  Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+	Snap     = TweenInfo.new(0.06, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out),
+	Bounce   = TweenInfo.new(0.45, Enum.EasingStyle.Back,  Enum.EasingDirection.Out),
+	Spring   = TweenInfo.new(0.5,  Enum.EasingStyle.Back,  Enum.EasingDirection.Out),
+	Micro    = TweenInfo.new(0.12, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out),
+	Hover    = TweenInfo.new(0.18, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out),
 }
-
--- ═══════════════════════════════════════
--- UTILITIES
--- ═══════════════════════════════════════
 
 local function tween(obj, info, props)
 	local t = TweenService:Create(obj, info, props)
@@ -111,24 +86,23 @@ end
 local function hoverEffect(frame, frameStroke)
 	frame.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
-			tween(frame, Tw.Silk, {BackgroundColor3 = Theme.CardHover})
-			if frameStroke then tween(frameStroke, Tw.Silk, {Color = Theme.BorderHover}) end
+			tween(frame, Tw.Hover, {BackgroundColor3 = Theme.CardHover})
+			if frameStroke then tween(frameStroke, Tw.Hover, {Color = Theme.BorderHover}) end
 		end
 	end)
 	frame.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
-			tween(frame, Tw.Silk, {BackgroundColor3 = Theme.Card})
-			if frameStroke then tween(frameStroke, Tw.Silk, {Color = Theme.Border}) end
+			tween(frame, Tw.Hover, {BackgroundColor3 = Theme.Card})
+			if frameStroke then tween(frameStroke, Tw.Hover, {Color = Theme.Border}) end
 		end
 	end)
 end
 
--- ═══════════════════════════════════════
--- DRAG SYSTEM
--- ═══════════════════════════════════════
-
-local function makeDraggable(handle, target)
-	local dragging, dragInput, dragStart, startPos
+-- Drag system — uses RenderStepped for frame-perfect movement
+local function makeDraggable(handle, target, onDrag)
+	local dragging = false
+	local dragStart = Vector3.zero
+	local startPos = UDim2.new()
 
 	handle.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1
@@ -144,26 +118,15 @@ local function makeDraggable(handle, target)
 		end
 	end)
 
-	handle.InputChanged:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement
-			or input.UserInputType == Enum.UserInputType.Touch then
-			dragInput = input
-		end
-	end)
-
-	UserInputService.InputChanged:Connect(function(input)
-		if input == dragInput and dragging then
-			local d = input.Position - dragStart
-			local p = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
-			tween(target, Tw.Snap, {Position = p})
-			target:SetAttribute("DragPos", p)
-		end
+	RunService.RenderStepped:Connect(function()
+		if not dragging then return end
+		local mousePos = UserInputService:GetMouseLocation()
+		local delta = Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(dragStart.X, dragStart.Y)
+		local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		target.Position = newPos
+		if onDrag then onDrag() end
 	end)
 end
-
--- ═══════════════════════════════════════
--- LIBRARY
--- ═══════════════════════════════════════
 
 local HihlLib = {}
 
@@ -172,14 +135,12 @@ function HihlLib:CreateWindow(config)
 	local title = config.Title or "Hihl Hub"
 	local toggleKey = config.ToggleKey or Enum.KeyCode.RightShift
 
-	-- ScreenGui
 	local gui = Instance.new("ScreenGui")
 	gui.Name = title:gsub("%s", "") .. "_UI"
 	gui.ResetOnSpawn = false
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Parent = playerGui
 
-	-- Navbar
 	local navbar = Instance.new("Frame")
 	navbar.Name = "Navbar"
 	navbar.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -200,12 +161,9 @@ function HihlLib:CreateWindow(config)
 	navLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	navLayout.Parent = navbar
 
-	-- Pages container
 	local pages = Instance.new("Folder")
 	pages.Name = "Pages"
 	pages.Parent = gui
-
-	makeDraggable(navbar, navbar)
 
 	-- State
 	local Window = {}
@@ -222,7 +180,6 @@ function HihlLib:CreateWindow(config)
 	local miniSize = UDim2.new(0, 195, 0, 155)
 	local gap = 10
 
-	-- Helpers
 	local function isAbove()
 		return navbar.AbsolutePosition.Y < gui.AbsoluteSize.Y * 0.4
 	end
@@ -232,22 +189,22 @@ function HihlLib:CreateWindow(config)
 		local nh = navbar.AbsoluteSize.Y
 		local ph = fullSize.Y.Offset
 		local below = isAbove()
-		local oy = below and (nh/2 + gap + ph/2) or -(nh/2 + gap + ph/2)
+		local oy = below and (nh / 2 + gap + ph / 2) or -(nh / 2 + gap + ph / 2)
 		return UDim2.new(p.X.Scale, p.X.Offset, p.Y.Scale, p.Y.Offset + oy)
 	end
 
 	local function getShifted(side)
 		local c = getCenter()
-		local s = 55
+		local s = 50
 		local ox = side == "left" and -s or s
 		return UDim2.new(c.X.Scale, c.X.Offset + ox, c.Y.Scale, c.Y.Offset)
 	end
 
 	local function activateBtn(tab)
 		tab.active = true
-		tween(tab.icon, Tw.Silk, {ImageColor3 = Theme.Accent})
-		tween(tab.holder, Tw.Silk, {BackgroundTransparency = 0.8})
-		tween(tab.indicator, Tw.Silk, {Size = UDim2.new(0, 14, 0, 2)})
+		tween(tab.icon, Tw.Fast, {ImageColor3 = Theme.Accent})
+		tween(tab.holder, Tw.Fast, {BackgroundTransparency = 0.8})
+		tween(tab.indicator, Tw.Fast, {Size = UDim2.new(0, 14, 0, 2)})
 	end
 
 	local function deactivateBtn(tab)
@@ -262,55 +219,60 @@ function HihlLib:CreateWindow(config)
 		Window.locked = true
 
 		local tab = Window.tabs[name]
+		if not tab then Window.locked = false return end
 		local page = tab.page
 		local pageStroke = tab.pageStroke
 		local accentLine = tab.accentLine
 
-		-- Close current tab
 		if Window.currentTab == name then
+			-- Close current
 			Window.currentTab = nil
 			deactivateBtn(tab)
 			if accentLine then tween(accentLine, Tw.Fast, {Size = UDim2.new(0, 0, 0, 2)}) end
 			if pageStroke then tween(pageStroke, Tw.Fast, {Transparency = 1}) end
 			local t = tween(page, Tw.Silk, {Size = miniSize, GroupTransparency = 1})
-			t.Completed:Connect(function()
+			t.Completed:Once(function()
 				if Window.currentTab ~= name then page.Visible = false end
 				Window.locked = false
 			end)
 			return
 		end
 
-		-- Switch tabs
 		if Window.currentTab then
 			local oldTab = Window.tabs[Window.currentTab]
-			local oldPage = oldTab.page
-			deactivateBtn(oldTab)
-			if oldTab.accentLine then tween(oldTab.accentLine, Tw.Fast, {Size = UDim2.new(0, 0, 0, 2)}) end
-			if oldTab.pageStroke then tween(oldTab.pageStroke, Tw.Fast, {Transparency = 1}) end
+			if oldTab then
+				local oldPage = oldTab.page
+				deactivateBtn(oldTab)
+				if oldTab.accentLine then tween(oldTab.accentLine, Tw.Fast, {Size = UDim2.new(0, 0, 0, 2)}) end
+				if oldTab.pageStroke then tween(oldTab.pageStroke, Tw.Fast, {Transparency = 1}) end
 
-			local exitSide = tab.order > oldTab.order and "left" or "right"
-			local enterSide = tab.order > oldTab.order and "right" or "left"
+				local exitSide = tab.order > oldTab.order and "left" or "right"
+				local enterSide = tab.order > oldTab.order and "right" or "left"
 
-			local exitT = tween(oldPage, Tw.Silk, {Position = getShifted(exitSide), Size = miniSize, GroupTransparency = 1})
-			exitT.Completed:Connect(function() oldPage.Visible = false end)
+				local exitT = tween(oldPage, Tw.Silk, {Position = getShifted(exitSide), Size = miniSize, GroupTransparency = 1})
+				exitT.Completed:Once(function() oldPage.Visible = false end)
 
-			page.Position = getShifted(enterSide)
-			page.Size = miniSize
-			page.GroupTransparency = 1
-			page.Visible = true
-			if pageStroke then pageStroke.Transparency = 1 end
-			if accentLine then accentLine.Size = UDim2.new(0, 0, 0, 2) end
+				page.Position = getShifted(enterSide)
+				page.Size = miniSize
+				page.GroupTransparency = 1
+				page.Visible = true
+				if pageStroke then pageStroke.Transparency = 1 end
+				if accentLine then accentLine.Size = UDim2.new(0, 0, 0, 2) end
 
-			Window.currentTab = name
-			activateBtn(tab)
+				Window.currentTab = name
+				activateBtn(tab)
 
-			task.wait(0.02)
-			tween(page, Tw.Slow, {Position = getCenter(), Size = fullSize, GroupTransparency = 0})
-			if pageStroke then tween(pageStroke, Tw.Slow, {Transparency = 0}) end
-			task.wait(0.2)
-			if accentLine then tween(accentLine, Tw.Silk, {Size = UDim2.new(0.25, 0, 0, 2)}) end
-			task.wait(0.3)
-			Window.locked = false
+				task.defer(function()
+					tween(page, Tw.Slow, {Position = getCenter(), Size = fullSize, GroupTransparency = 0})
+					if pageStroke then tween(pageStroke, Tw.Slow, {Transparency = 0}) end
+					task.wait(0.18)
+					if accentLine and Window.currentTab == name then
+						tween(accentLine, Tw.Silk, {Size = UDim2.new(0.25, 0, 0, 2)})
+					end
+					task.wait(0.25)
+					Window.locked = false
+				end)
+			end
 		else
 			-- First open
 			page.Position = getCenter()
@@ -323,26 +285,30 @@ function HihlLib:CreateWindow(config)
 			Window.currentTab = name
 			activateBtn(tab)
 
-			tween(page, Tw.Slow, {Size = fullSize, GroupTransparency = 0})
-			if pageStroke then tween(pageStroke, Tw.Slow, {Transparency = 0}) end
-			task.wait(0.2)
-			if accentLine then tween(accentLine, Tw.Silk, {Size = UDim2.new(0.25, 0, 0, 2)}) end
-			task.wait(0.35)
-			Window.locked = false
+			task.defer(function()
+				tween(page, Tw.Slow, {Size = fullSize, GroupTransparency = 0})
+				if pageStroke then tween(pageStroke, Tw.Slow, {Transparency = 0}) end
+				task.wait(0.18)
+				if accentLine and Window.currentTab == name then
+					tween(accentLine, Tw.Silk, {Size = UDim2.new(0.25, 0, 0, 2)})
+				end
+				task.wait(0.3)
+				Window.locked = false
+			end)
 		end
 	end
 
-	-- Follow navbar drag
-	navbar:GetAttributeChangedSignal("DragPos"):Connect(function()
+	-- Drag follow — page follows navbar in real time
+	makeDraggable(navbar, navbar, function()
 		if Window.currentTab then
 			local tab = Window.tabs[Window.currentTab]
 			if tab and tab.page.GroupTransparency < 0.3 then
-				tween(tab.page, Tw.Snap, {Position = getCenter()})
+				tab.page.Position = getCenter()
 			end
 		end
 	end)
 
-	-- Toggle visibility
+	-- Toggle visibility with key
 	UserInputService.InputBegan:Connect(function(input, gpe)
 		if gpe then return end
 		if input.KeyCode == toggleKey then
@@ -361,7 +327,6 @@ function HihlLib:CreateWindow(config)
 		local tabIcon = tabConfig.Icon or "rbxassetid://10723407389"
 		local tabOrder = #self.tabOrder + 1
 
-		-- Navbar button
 		local holder = Instance.new("Frame")
 		holder.Name = tabName .. "Holder"
 		holder.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
@@ -394,7 +359,6 @@ function HihlLib:CreateWindow(config)
 		ind.Parent = holder
 		corner(ind, UDim.new(1, 0))
 
-		-- Page (CanvasGroup)
 		local page = Instance.new("CanvasGroup")
 		page.Name = tabName
 		page.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -410,7 +374,6 @@ function HihlLib:CreateWindow(config)
 		local pStroke = stroke(page, Theme.BorderLight, 1, 1)
 		pStroke.Name = "Stroke"
 
-		-- Accent line at top
 		local aLine = Instance.new("Frame")
 		aLine.Name = "AccentLine"
 		aLine.AnchorPoint = Vector2.new(0.5, 0)
@@ -423,7 +386,6 @@ function HihlLib:CreateWindow(config)
 		corner(aLine, UDim.new(1, 0))
 		accentGradient().Parent = aLine
 
-		-- Header
 		local header = Instance.new("Frame")
 		header.Name = "Header"
 		header.BackgroundTransparency = 1
@@ -451,7 +413,6 @@ function HihlLib:CreateWindow(config)
 		headerLine.ZIndex = 11
 		headerLine.Parent = header
 
-		-- Container (ScrollingFrame)
 		local container = Instance.new("ScrollingFrame")
 		container.Name = "Container"
 		container.BackgroundTransparency = 1
@@ -478,7 +439,6 @@ function HihlLib:CreateWindow(config)
 		cPadding.PaddingTop = UDim.new(0, 4)
 		cPadding.Parent = container
 
-		-- Register tab
 		local tabData = {
 			name = tabName,
 			order = tabOrder,
@@ -495,36 +455,33 @@ function HihlLib:CreateWindow(config)
 		self.tabs[tabName] = tabData
 		table.insert(self.tabOrder, tabName)
 
-		-- Resize navbar
+		-- Resize navbar smoothly
 		local btnCount = #self.tabOrder
 		tween(self.navbar, Tw.Spring, {Size = UDim2.new(0, btnCount * 46 + (btnCount - 1) * 4 + 16, 0, 46)})
 
-		-- Button interactions
+		-- Tab button interactions
 		icon.MouseButton1Click:Connect(function()
 			openTab(tabName)
 		end)
 
 		holder.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseMovement then
-				if not tabData.active then
-					tween(icon, Tw.Silk, {ImageColor3 = Theme.IconHover})
-					tween(holder, Tw.Silk, {BackgroundTransparency = 0.88})
-				end
+			if input.UserInputType == Enum.UserInputType.MouseMovement and not tabData.active then
+				tween(icon, Tw.Hover, {ImageColor3 = Theme.IconHover})
+				tween(holder, Tw.Hover, {BackgroundTransparency = 0.88})
 			end
 		end)
 
 		holder.InputEnded:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseMovement then
-				if not tabData.active then
-					tween(icon, Tw.Silk, {ImageColor3 = Theme.IconIdle})
-					tween(holder, Tw.Silk, {BackgroundTransparency = 1})
-				end
+			if input.UserInputType == Enum.UserInputType.MouseMovement and not tabData.active then
+				tween(icon, Tw.Hover, {ImageColor3 = Theme.IconIdle})
+				tween(holder, Tw.Hover, {BackgroundTransparency = 1})
 			end
 		end)
 
 		icon.MouseButton1Down:Connect(function()
-			tween(icon, Tw.Fast, {Size = UDim2.new(0, 15, 0, 15)})
+			tween(icon, Tw.Micro, {Size = UDim2.new(0, 15, 0, 15)})
 		end)
+
 		icon.InputEnded:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.MouseButton1 then
 				tween(icon, Tw.Spring, {Size = UDim2.new(0, 18, 0, 18)})
@@ -532,11 +489,10 @@ function HihlLib:CreateWindow(config)
 		end)
 
 		-- ═══════════════════════════════════
-		-- TAB API — Component Creators
+		-- TAB API
 		-- ═══════════════════════════════════
 		local Tab = {}
 
-		-- ─── TOGGLE ───
 		function Tab:CreateToggle(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
@@ -583,7 +539,7 @@ function HihlLib:CreateWindow(config)
 			local circle = Instance.new("Frame")
 			circle.Name = "Circle"
 			circle.AnchorPoint = on and Vector2.new(1, 0.5) or Vector2.new(0, 0.5)
-			circle.BackgroundColor3 = on and Color3.fromRGB(255,255,255) or Theme.ToggleOff
+			circle.BackgroundColor3 = on and Color3.fromRGB(255, 255, 255) or Theme.ToggleOff
 			circle.Position = on and UDim2.new(1, -3, 0.5, 0) or UDim2.new(0, 4, 0.5, 0)
 			circle.Size = on and UDim2.new(0, 16, 0, 16) or UDim2.new(0, 14, 0, 14)
 			circle.ZIndex = 13
@@ -592,31 +548,42 @@ function HihlLib:CreateWindow(config)
 
 			hoverEffect(frame, fStroke)
 
-			track.MouseButton1Click:Connect(function()
-				on = not on
+			local function setToggle(state)
+				on = state
 				if on then
 					tween(track, Tw.Silk, {BackgroundColor3 = Theme.Accent})
-					tween(circle, Tw.Spring, {Position = UDim2.new(1, -3, 0.5, 0), Size = UDim2.new(0, 16, 0, 16), AnchorPoint = Vector2.new(1, 0.5), BackgroundColor3 = Color3.fromRGB(255,255,255)})
+					tween(circle, Tw.Spring, {
+						Position = UDim2.new(1, -3, 0.5, 0),
+						Size = UDim2.new(0, 16, 0, 16),
+						AnchorPoint = Vector2.new(1, 0.5),
+						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+					})
 					tween(tStroke, Tw.Silk, {Color = Color3.fromRGB(100, 130, 255)})
 					tween(label, Tw.Silk, {TextColor3 = Theme.TextActive})
 				else
 					tween(track, Tw.Silk, {BackgroundColor3 = Theme.ToggleTrack})
-					tween(circle, Tw.Spring, {Position = UDim2.new(0, 4, 0.5, 0), Size = UDim2.new(0, 14, 0, 14), AnchorPoint = Vector2.new(0, 0.5), BackgroundColor3 = Theme.ToggleOff})
+					tween(circle, Tw.Spring, {
+						Position = UDim2.new(0, 4, 0.5, 0),
+						Size = UDim2.new(0, 14, 0, 14),
+						AnchorPoint = Vector2.new(0, 0.5),
+						BackgroundColor3 = Theme.ToggleOff,
+					})
 					tween(tStroke, Tw.Silk, {Color = Color3.fromRGB(40, 40, 52)})
 					tween(label, Tw.Silk, {TextColor3 = Theme.Text2})
 				end
 				task.spawn(callback, on)
+			end
+
+			track.MouseButton1Click:Connect(function()
+				setToggle(not on)
 			end)
 
 			local toggleAPI = {}
-			function toggleAPI:Set(val)
-				if val ~= on then track.MouseButton1Click:Fire() end
-			end
+			function toggleAPI:Set(val) if val ~= on then setToggle(val) end end
 			function toggleAPI:Get() return on end
 			return toggleAPI
 		end
 
-		-- ─── SLIDER ───
 		function Tab:CreateSlider(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
@@ -717,7 +684,27 @@ function HihlLib:CreateWindow(config)
 
 			hoverEffect(frame, fStroke)
 
+			-- Use RenderStepped for frame-perfect slider tracking
 			local sliding = false
+
+			local function updateSlider(inputX)
+				local barPos = bar.AbsolutePosition.X
+				local barSize = bar.AbsoluteSize.X
+				if barSize <= 0 then return end
+				local p = math.clamp((inputX - barPos) / barSize, 0, 1)
+				local rawVal = min + (max - min) * p
+				local snapped = math.floor(rawVal / increment + 0.5) * increment
+				snapped = math.clamp(snapped, min, max)
+				local snapP = (snapped - min) / math.max(max - min, 1)
+
+				fill.Size = UDim2.new(snapP, 0, 1, 0)
+				knob.Position = UDim2.new(snapP, 0, 0.5, 0)
+				valueLabel.Text = tostring(snapped)
+				if snapped ~= currentValue then
+					currentValue = snapped
+					task.spawn(callback, snapped)
+				end
+			end
 
 			trigger.MouseButton1Down:Connect(function()
 				sliding = true
@@ -725,30 +712,18 @@ function HihlLib:CreateWindow(config)
 			end)
 
 			UserInputService.InputEnded:Connect(function(input)
-				if input.UserInputType == Enum.UserInputType.MouseButton1 and sliding then
+				if (input.UserInputType == Enum.UserInputType.MouseButton1
+					or input.UserInputType == Enum.UserInputType.Touch) and sliding then
 					sliding = false
 					tween(knob, Tw.Spring, {Size = UDim2.new(0, 12, 0, 12)})
 				end
 			end)
 
-			UserInputService.InputChanged:Connect(function(input)
+			-- Frame-perfect tracking via RenderStepped
+			RunService.RenderStepped:Connect(function()
 				if not sliding then return end
-				if input.UserInputType ~= Enum.UserInputType.MouseMovement
-					and input.UserInputType ~= Enum.UserInputType.Touch then return end
-				local p = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-				-- Snap to increment
-				local rawVal = min + (max - min) * p
-				local snapped = math.floor(rawVal / increment + 0.5) * increment
-				snapped = math.clamp(snapped, min, max)
-				local snapP = (snapped - min) / math.max(max - min, 1)
-
-				tween(fill, Tw.Snap, {Size = UDim2.new(snapP, 0, 1, 0)})
-				tween(knob, Tw.Snap, {Position = UDim2.new(snapP, 0, 0.5, 0)})
-				valueLabel.Text = tostring(snapped)
-				if snapped ~= currentValue then
-					currentValue = snapped
-					task.spawn(callback, snapped)
-				end
+				local mousePos = UserInputService:GetMouseLocation()
+				updateSlider(mousePos.X)
 			end)
 
 			local sliderAPI = {}
@@ -767,7 +742,6 @@ function HihlLib:CreateWindow(config)
 			return sliderAPI
 		end
 
-		-- ─── BUTTON ───
 		function Tab:CreateButton(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
@@ -809,7 +783,19 @@ function HihlLib:CreateWindow(config)
 			arrow.TextSize = 18
 			arrow.Parent = frame
 
-			hoverEffect(frame, fStroke)
+			-- Button hover — direct on TextButton
+			frame.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseMovement then
+					tween(frame, Tw.Hover, {BackgroundColor3 = Theme.CardHover})
+					if fStroke then tween(fStroke, Tw.Hover, {Color = Theme.BorderHover}) end
+				end
+			end)
+			frame.InputEnded:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseMovement then
+					tween(frame, Tw.Hover, {BackgroundColor3 = Theme.Card})
+					if fStroke then tween(fStroke, Tw.Hover, {Color = Theme.Border}) end
+				end
+			end)
 
 			frame.MouseButton1Down:Connect(function()
 				tween(frame, Tw.Micro, {BackgroundColor3 = Theme.Border})
@@ -818,13 +804,14 @@ function HihlLib:CreateWindow(config)
 			frame.MouseButton1Click:Connect(function()
 				tween(frame, Tw.Silk, {BackgroundColor3 = Theme.Card})
 				tween(label, Tw.Fast, {TextColor3 = Theme.Accent})
-				task.wait(0.15)
-				tween(label, Tw.Silk, {TextColor3 = Theme.Text2})
+				task.defer(function()
+					task.wait(0.12)
+					tween(label, Tw.Silk, {TextColor3 = Theme.Text2})
+				end)
 				task.spawn(callback)
 			end)
 		end
 
-		-- ─── DROPDOWN ───
 		function Tab:CreateDropdown(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
@@ -878,20 +865,21 @@ function HihlLib:CreateWindow(config)
 			optionList.Parent = frame
 
 			local oLayout = Instance.new("UIListLayout")
-			oLayout.Padding = UDim.new(0, 0)
+			oLayout.Padding = UDim.new(0, 2)
 			oLayout.SortOrder = Enum.SortOrder.LayoutOrder
 			oLayout.Parent = optionList
 
 			local oPad = Instance.new("UIPadding")
 			oPad.PaddingLeft = UDim.new(0, 8)
 			oPad.PaddingRight = UDim.new(0, 8)
+			oPad.PaddingTop = UDim.new(0, 2)
 			oPad.Parent = optionList
 
 			for i, opt in ipairs(options) do
 				local optBtn = Instance.new("TextButton")
 				optBtn.BackgroundColor3 = Theme.Bg
 				optBtn.BackgroundTransparency = 0.5
-				optBtn.Size = UDim2.new(1, 0, 0, 28)
+				optBtn.Size = UDim2.new(1, 0, 0, 26)
 				optBtn.ZIndex = 13
 				optBtn.AutoButtonColor = false
 				optBtn.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium)
@@ -910,6 +898,9 @@ function HihlLib:CreateWindow(config)
 							tween(c, Tw.Fast, {TextColor3 = c.Text == opt and Theme.Accent or Theme.Text2})
 						end
 					end
+					-- Auto-close dropdown
+					isOpen = false
+					tween(frame, Tw.Silk, {Size = UDim2.new(1, 0, 0, 38)})
 					task.spawn(callback, opt)
 				end)
 
@@ -927,9 +918,11 @@ function HihlLib:CreateWindow(config)
 
 			selected.MouseButton1Click:Connect(function()
 				isOpen = not isOpen
-				local targetH = isOpen and (38 + #options * 28 + 6) or 38
+				local targetH = isOpen and (38 + #options * 28 + 10) or 38
 				tween(frame, Tw.Spring, {Size = UDim2.new(1, 0, 0, targetH)})
 			end)
+
+			hoverEffect(frame, fStroke)
 
 			local dropAPI = {}
 			function dropAPI:Set(val) selected.Text = val; current = val; task.spawn(callback, val) end
@@ -937,7 +930,6 @@ function HihlLib:CreateWindow(config)
 			return dropAPI
 		end
 
-		-- ─── KEYBIND ───
 		function Tab:CreateKeybind(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
@@ -975,7 +967,7 @@ function HihlLib:CreateWindow(config)
 			keyBtn.ZIndex = 13
 			keyBtn.AutoButtonColor = false
 			keyBtn.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
-			keyBtn.Text = currentKey.Name or "..."
+			keyBtn.Text = currentKey == Enum.KeyCode.Unknown and "..." or currentKey.Name
 			keyBtn.TextColor3 = Theme.Accent
 			keyBtn.TextSize = 10
 			keyBtn.Parent = frame
@@ -986,32 +978,31 @@ function HihlLib:CreateWindow(config)
 			keyBtn.MouseButton1Click:Connect(function()
 				listening = true
 				keyBtn.Text = "..."
-				tween(keyBtn, Tw.Fast, {BackgroundColor3 = Theme.Accent})
-				tween(keyBtn, Tw.Fast, {TextColor3 = Color3.fromRGB(255,255,255)})
+				tween(keyBtn, Tw.Fast, {BackgroundColor3 = Theme.Accent, TextColor3 = Color3.fromRGB(255, 255, 255)})
 			end)
 
 			UserInputService.InputBegan:Connect(function(input, gpe)
-				if not listening then
-					if input.KeyCode == currentKey then
-						task.spawn(callback, currentKey)
+				if listening then
+					if input.UserInputType == Enum.UserInputType.Keyboard then
+						currentKey = input.KeyCode
+						keyBtn.Text = input.KeyCode.Name
+						listening = false
+						tween(keyBtn, Tw.Silk, {BackgroundColor3 = Theme.ValueBg, TextColor3 = Theme.Accent})
 					end
 					return
 				end
-				if input.UserInputType == Enum.UserInputType.Keyboard then
-					currentKey = input.KeyCode
-					keyBtn.Text = input.KeyCode.Name
-					listening = false
-					tween(keyBtn, Tw.Silk, {BackgroundColor3 = Theme.ValueBg})
-					tween(keyBtn, Tw.Silk, {TextColor3 = Theme.Accent})
+				if gpe then return end
+				if input.KeyCode == currentKey then
+					task.spawn(callback, currentKey)
 				end
 			end)
 
 			local kbAPI = {}
 			function kbAPI:Get() return currentKey end
+			function kbAPI:Set(key) currentKey = key; keyBtn.Text = key.Name end
 			return kbAPI
 		end
 
-		-- ─── TEXT INPUT ───
 		function Tab:CreateInput(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
@@ -1057,7 +1048,12 @@ function HihlLib:CreateWindow(config)
 
 			hoverEffect(frame, fStroke)
 
+			box.Focused:Connect(function()
+				tween(fStroke, Tw.Fast, {Color = Theme.Accent})
+			end)
+
 			box.FocusLost:Connect(function(enterPressed)
+				tween(fStroke, Tw.Silk, {Color = Theme.Border})
 				if enterPressed then
 					task.spawn(callback, box.Text)
 				end
@@ -1069,7 +1065,6 @@ function HihlLib:CreateWindow(config)
 			return inputAPI
 		end
 
-		-- ─── LABEL ───
 		function Tab:CreateLabel(cfg)
 			cfg = cfg or {}
 			tabData.itemCount = tabData.itemCount + 1
@@ -1096,7 +1091,6 @@ function HihlLib:CreateWindow(config)
 			return labelAPI
 		end
 
-		-- ─── SEPARATOR ───
 		function Tab:CreateSeparator()
 			tabData.itemCount = tabData.itemCount + 1
 			local sep = Instance.new("Frame")
@@ -1112,10 +1106,10 @@ function HihlLib:CreateWindow(config)
 		return Tab
 	end
 
-	-- Entrance animation for navbar
+	-- Entrance animation
 	navbar.BackgroundTransparency = 1
-	task.spawn(function()
-		task.wait(0.1)
+	task.defer(function()
+		task.wait(0.05)
 		tween(navbar, Tw.Bounce, {BackgroundTransparency = 0})
 	end)
 
